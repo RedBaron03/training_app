@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Training App",
+    "slug": "training-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F7F5F0"
+    },
+    "assetBundlePatterns": ["**/*"]
+  }
+}
