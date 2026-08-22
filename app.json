@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Training App",
+    "name": "Fitness Tracker",
     "slug": "training-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,6 +9,16 @@
       "resizeMode": "contain",
       "backgroundColor": "#0B1014"
     },
-    "assetBundlePatterns": ["**/*"]
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c0c4d1ca-cabc-44a6-aa5a-d6ce018cfa72"
+      }
+    },
+    "android": {
+      "package": "com.blueballsmedia.trainingapp"
+    }
   }
 }

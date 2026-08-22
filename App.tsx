@@ -1,9 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, BackHandler, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { exerciseGroups } from './exerciseGroups';
 import { motivationalMessages, type Language } from './motivationalMessages';
-import { testEntries } from './testEntries';
 
 type Screen = 'home' | 'strength' | 'cardio' | 'recent' | 'settings' | 'details' | 'exercises';
 type WorkoutType = 'strength' | 'cardio';
@@ -19,7 +19,8 @@ const translations: Record<Language, Copy> = {
   es: { language: 'Español', overview: 'Resumen', strength: 'Fuerza', cardio: 'Cardio', recent: 'Historial', settings: 'Ajustes', back: '‹ Atrás', logStrength: 'Registrar fuerza', strengthSubtitle: 'Crea una sesión con uno o más ejercicios.', logCardio: 'Registrar cardio', cardioSubtitle: 'Añade una caminata, un trote o una carrera.', exercise: 'Ejercicio', repetitions: 'Repeticiones', weight: 'Peso (kg)', selectExercise: 'Seleccionar ejercicio', addExercise: 'Añadir ejercicio', saveSession: 'Guardar sesión', saveActivity: 'Guardar actividad', exercisesInSession: 'Ejercicios de esta sesión', recordingWorkout: 'Grabando entrenamiento', readyToRecord: 'Listo para grabar', start: 'Iniciar', stop: 'Detener', duration: 'Duración (minutos)', phoneWatchData: 'Datos del teléfono y reloj', sensorDetail: 'La velocidad, los pasos, la frecuencia cardíaca y la ruta aparecerán aquí cuando se conecten los permisos y la sincronización.', speed: 'Velocidad', steps: 'Pasos', heartRate: 'Frecuencia cardíaca', thisWeek: 'ESTA SEMANA', sessionsLogged: 'sesiones registradas', keepBuilding: 'Sigue construyendo tu rutina', logWorkout: 'Registrar entrenamiento', recentActivity: 'Actividad reciente', viewAll: 'Ver todo ›', recentSubtitle: 'Tu historial completo de entrenamientos.', noWorkouts: 'Aún no hay entrenamientos de {type}.', sessionDetails: 'Detalles de la sesión', setGoals: 'Define tus objetivos semanales.', theme: 'Tema', dark: 'Oscuro', light: 'Claro', strengthGoal: 'Entrenamientos de fuerza por semana', cardioGoal: 'Entrenamientos de cardio por semana', strengthSession: 'Sesión de fuerza', exercises: 'ejercicios', reps: 'repeticiones', kg: 'kg', activity: 'Actividad', minutes: 'minutos', sensorPending: 'Datos del sensor pendientes', walking: 'Caminar', jogging: 'Trote', running: 'Correr', intention: 'Entrena con\nintención.' },
 };
 
-const initialEntries: Entry[] = testEntries;
+const initialEntries: Entry[] = [];
+const STORAGE_KEY = 'training-app-state';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
@@ -41,11 +42,35 @@ export default function App() {
   const [detailsBackScreen, setDetailsBackScreen] = useState<'home' | 'recent'>('recent');
   const [isDark, setIsDark] = useState(true);
   const [language, setLanguage] = useState<Language>('en');
+  const [isHydrated, setIsHydrated] = useState(false);
   const [exerciseSelectorBackScreen, setExerciseSelectorBackScreen] = useState<'home' | 'strength' | 'settings'>('settings');
   const copy = translations[language];
   const recordingStartedAt = useRef<number | null>(null);
 
   styles = isDark ? darkStyles : lightStyles;
+
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY).then((storedState) => {
+      if (storedState) {
+        const saved = JSON.parse(storedState);
+        setEntries(saved.entries || initialEntries);
+        setStrengthPresets(saved.strengthPresets || []);
+        setActivity(saved.activity || 'Jogging');
+        setDurationHours(saved.durationHours || '');
+        setDurationMinutes(saved.durationMinutes || '');
+        setDurationSeconds(saved.durationSeconds || '');
+        setStrengthGoal(saved.strengthGoal || '3');
+        setCardioGoal(saved.cardioGoal || '3');
+        setIsDark(saved.isDark ?? true);
+        setLanguage(saved.language || 'en');
+      }
+    }).catch(() => undefined).finally(() => setIsHydrated(true));
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ entries, strengthPresets, activity, durationHours, durationMinutes, durationSeconds, strengthGoal, cardioGoal, isDark, language })).catch(() => undefined);
+  }, [isHydrated, entries, strengthPresets, activity, durationHours, durationMinutes, durationSeconds, strengthGoal, cardioGoal, isDark, language]);
 
   const changeLanguage = (nextLanguage: Language) => {
     setStrengthPresets((presets) => presets.map((preset) => translateExerciseName(preset, language, nextLanguage)));
