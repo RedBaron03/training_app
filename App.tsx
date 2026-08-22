@@ -1,27 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { exerciseGroups } from './exerciseGroups';
+import { motivationalMessages, type Language } from './motivationalMessages';
 
 type Screen = 'home' | 'strength' | 'cardio' | 'recent' | 'settings' | 'details';
 type WorkoutType = 'strength' | 'cardio';
-type Language = 'en' | 'de' | 'fr' | 'it' | 'es';
 type StrengthExercise = { id: string; title: string; repetitions: string; weight: string };
 type Entry = { id: string; title: string; detail: string; accent: string; type: WorkoutType; items: string[] };
 type Copy = { language: string; overview: string; strength: string; cardio: string; recent: string; settings: string; back: string; logStrength: string; strengthSubtitle: string; logCardio: string; cardioSubtitle: string; exercise: string; repetitions: string; weight: string; selectExercise: string; addExercise: string; saveSession: string; saveActivity: string; exercisesInSession: string; recordingWorkout: string; readyToRecord: string; start: string; stop: string; duration: string; phoneWatchData: string; sensorDetail: string; speed: string; steps: string; heartRate: string; thisWeek: string; sessionsLogged: string; keepBuilding: string; logWorkout: string; recentActivity: string; viewAll: string; recentSubtitle: string; noWorkouts: string; sessionDetails: string; setGoals: string; theme: string; dark: string; light: string; strengthGoal: string; cardioGoal: string; strengthSession: string; exercises: string; reps: string; kg: string; activity: string; minutes: string; sensorPending: string; walking: string; jogging: string; running: string; intention: string };
-
-type ExerciseGroup = { categories: Record<Language, string>; exercises: Record<Language, string[]> };
-
-const exerciseGroups: ExerciseGroup[] = [
-  { categories: { en: 'Chest', de: 'Brust', fr: 'Pectoraux', it: 'Petto', es: 'Pecho' }, exercises: { en: ['Bench Press', 'Cable Chest Press', 'Push-Up', 'Pec Deck', 'Chest Press'], de: ['Bankdrücken', 'Kabel-Brustpresse', 'Liegestütz', 'Butterfly', 'Brustpresse'], fr: ['Développé couché', 'Presse poitrine à la poulie', 'Pompes', 'Pec deck', 'Presse poitrine'], it: ['Panca piana', 'Chest press ai cavi', 'Piegamenti', 'Pec deck', 'Chest press'], es: ['Press de banca', 'Press de pecho en polea', 'Flexiones', 'Pec deck', 'Press de pecho'] } },
-  { categories: { en: 'Shoulders', de: 'Schultern', fr: 'Épaules', it: 'Spalle', es: 'Hombros' }, exercises: { en: ['Overhead Press', 'Dumbbell Shoulder Press', 'Lateral Raise', 'Face Pull'], de: ['Schulterdrücken', 'Schulterdrücken mit Kurzhanteln', 'Seitheben', 'Face Pull'], fr: ['Développé militaire', 'Développé épaules avec haltères', 'Élévations latérales', 'Face pull'], it: ['Lento avanti', 'Shoulder press con manubri', 'Alzate laterali', 'Face pull'], es: ['Press militar', 'Press de hombros con mancuernas', 'Elevaciones laterales', 'Face pull'] } },
-  { categories: { en: 'Back', de: 'Rücken', fr: 'Dos', it: 'Schiena', es: 'Espalda' }, exercises: { en: ['Deadlift', 'Lat Pulldown', 'Pull-Up', 'Barbell Row', 'Rowing'], de: ['Kreuzheben', 'Latzug', 'Klimmzug', 'Langhantelrudern', 'Rudern'], fr: ['Soulevé de terre', 'Tirage vertical', 'Tractions', 'Rowing barre', 'Tirage horizontal'], it: ['Stacco da terra', 'Lat machine', 'Trazioni', 'Rematore con bilanciere', 'Rematore'], es: ['Peso muerto', 'Jalón al pecho', 'Dominadas', 'Remo con barra', 'Remo'] } },
-  { categories: { en: 'Biceps', de: 'Bizeps', fr: 'Biceps', it: 'Bicipiti', es: 'Bíceps' }, exercises: { en: ['Barbell Curl', 'Dumbbell Curl', 'Hammer Curl', 'Concentration Curl'], de: ['Langhantelcurls', 'Kurzhantelcurls', 'Hammercurls', 'Konzentrationscurls'], fr: ['Curl barre', 'Curl haltères', 'Curl marteau', 'Curl concentré'], it: ['Curl con bilanciere', 'Curl con manubri', 'Curl a martello', 'Curl concentrato'], es: ['Curl con barra', 'Curl con mancuernas', 'Curl martillo', 'Curl de concentración'] } },
-  { categories: { en: 'Triceps', de: 'Trizeps', fr: 'Triceps', it: 'Tricipiti', es: 'Tríceps' }, exercises: { en: ['Tricep Pushdown', 'Close-Grip Bench Press', 'Overhead Cable Extension', 'Bench Dip'], de: ['Trizepsdrücken', 'Enges Bankdrücken', 'Trizepsstrecken über Kopf am Kabel', 'Bank-Dips'], fr: ['Extension triceps à la poulie', 'Développé couché prise serrée', 'Extension triceps au-dessus de la tête', 'Dips sur banc'], it: ['Pushdown tricipiti', 'Panca a presa stretta', 'Estensione tricipiti sopra la testa', 'Dip su panca'], es: ['Extensión de tríceps en polea', 'Press de banca con agarre cerrado', 'Extensión de tríceps sobre la cabeza', 'Fondos en banco'] } },
-  { categories: { en: 'Legs', de: 'Beine', fr: 'Jambes', it: 'Gambe', es: 'Piernas' }, exercises: { en: ['Squat', 'Leg Press', 'Leg Extension', 'Romanian Deadlift'], de: ['Kniebeuge', 'Beinpresse', 'Beinstrecken', 'Rumänisches Kreuzheben'], fr: ['Squat', 'Presse à cuisses', 'Extension des jambes', 'Soulevé de terre roumain'], it: ['Squat', 'Leg press', 'Leg extension', 'Stacco rumeno'], es: ['Sentadilla', 'Prensa de piernas', 'Extensión de piernas', 'Peso muerto rumano'] } },
-  { categories: { en: 'Glutes', de: 'Gesäß', fr: 'Fessiers', it: 'Glutei', es: 'Glúteos' }, exercises: { en: ['Hip Thrust', 'Bulgarian Split Squat', 'Glute Bridge', 'Cable Glute Kickback'], de: ['Hip Thrust', 'Bulgarische Split Squats', 'Glute Bridge', 'Kabel-Kickbacks'], fr: ['Hip thrust', 'Fentes bulgares', 'Pont fessier', 'Extension fessiers à la poulie'], it: ['Hip thrust', 'Split squat bulgaro', 'Ponte per glutei', 'Calcio glutei ai cavi'], es: ['Hip thrust', 'Sentadilla búlgara', 'Puente de glúteos', 'Patada de glúteo en polea'] } },
-  { categories: { en: 'Abs', de: 'Bauch', fr: 'Abdominaux', it: 'Addominali', es: 'Abdominales' }, exercises: { en: ['Plank', 'Cable Crunch', 'Hanging Leg Raise', 'Mountain Climbers'], de: ['Plank', 'Kabel-Crunch', 'Beinheben im Hang', 'Mountain Climbers'], fr: ['Planche', 'Crunch à la poulie', 'Relevé de jambes suspendu', 'Mountain climbers'], it: ['Plank', 'Crunch ai cavi', 'Sollevamento gambe alla sbarra', 'Mountain climber'], es: ['Plancha', 'Crunch en polea', 'Elevación de piernas colgado', 'Escaladores'] } },
-  { categories: { en: 'Calves', de: 'Waden', fr: 'Mollets', it: 'Polpacci', es: 'Pantorrillas' }, exercises: { en: ['Standing Calf Raise', 'Seated Calf Raise'], de: ['Wadenheben im Stehen', 'Wadenheben im Sitzen'], fr: ['Mollets debout', 'Mollets assis'], it: ['Calf raise in piedi', 'Calf raise da seduto'], es: ['Elevación de talones de pie', 'Elevación de talones sentado'] } },
-];
 
 const translations: Record<Language, Copy> = {
   en: { language: 'English (UK)', overview: 'Overview', strength: 'Strength', cardio: 'Cardio', recent: 'Recent', settings: 'Settings', back: '‹ Back', logStrength: 'Log strength', strengthSubtitle: 'Build a session with one or more exercises.', logCardio: 'Log cardio', cardioSubtitle: 'Add a walk, jog, or run.', exercise: 'Exercise', repetitions: 'Repetitions', weight: 'Weight (kg)', selectExercise: 'Select exercise', addExercise: 'Add exercise', saveSession: 'Save session', saveActivity: 'Save activity', exercisesInSession: 'Exercises in this session', recordingWorkout: 'Recording workout', readyToRecord: 'Ready to record', start: 'Start', stop: 'Stop', duration: 'Duration (minutes)', phoneWatchData: 'Phone & watch data', sensorDetail: 'Speed, steps, heart rate, and route will appear here when device permissions and wearable sync are connected.', speed: 'Speed', steps: 'Steps', heartRate: 'Heart rate', thisWeek: 'THIS WEEK', sessionsLogged: 'sessions logged', keepBuilding: 'Keep building your routine', logWorkout: 'Log a workout', recentActivity: 'Recent activity', viewAll: 'View all ›', recentSubtitle: 'Your complete workout history.', noWorkouts: 'No {type} workouts logged yet.', sessionDetails: 'Session details', setGoals: 'Set your weekly training goals.', theme: 'Theme', dark: 'Dark', light: 'Light', strengthGoal: 'Strength trainings per week', cardioGoal: 'Cardio trainings per week', strengthSession: 'Strength session', exercises: 'exercises', reps: 'reps', kg: 'kg', activity: 'Activity', minutes: 'minutes', sensorPending: 'Sensor data pending', walking: 'Walking', jogging: 'Jogging', running: 'Running', intention: 'Train with\nintention.' },
@@ -203,7 +190,7 @@ function Home({ entries, copy, strengthGoal, cardioGoal, onAdd, onCardio, onRece
   return (
     <>
       <View style={styles.header}>
-        <View style={styles.headerDate}><Text style={styles.eyebrow}>{formatDate(languageFromCopy(copy))}</Text><Text style={styles.title}>{copy.intention}</Text></View>
+        <View style={styles.headerDate}><Text style={styles.eyebrow}>{formatDate(languageFromCopy(copy))}</Text><Text style={styles.title}>{getMotivationalMessage(languageFromCopy(copy))}</Text></View>
       </View>
       <View style={styles.progressCard}>
         <View style={styles.progressCopy}><Text style={styles.cardLabel}>{copy.thisWeek}</Text><Text style={styles.progressTitle}>{entries.length} {copy.sessionsLogged}</Text><Text style={styles.progressDetail}>{copy.keepBuilding}</Text></View>
@@ -384,7 +371,13 @@ function translateExerciseName(name: string, fromLanguage: Language, toLanguage:
 
 function formatDate(language: Language) {
   const locale = { en: 'en-GB', de: 'de-DE', fr: 'fr-FR', it: 'it-IT', es: 'es-ES' }[language];
-  return new Intl.DateTimeFormat(locale, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(2025, 7, 20)).toUpperCase();
+  return new Intl.DateTimeFormat(locale, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()).toUpperCase();
+}
+
+function getMotivationalMessage(language: Language) {
+  const startOfYear = new Date(new Date().getFullYear(), 0, 1).getTime();
+  const dayOfYear = Math.floor((Date.now() - startOfYear) / 86400000);
+  return motivationalMessages[language][dayOfYear % motivationalMessages[language].length];
 }
 
 function getLanguageLabel(language: Language) {
