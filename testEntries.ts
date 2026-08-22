@@ -17,6 +17,21 @@ const sessionDate = (sequence: number) => {
   return date.toISOString();
 };
 
+const cardioSessionDate = (index: number) => {
+  const date = new Date();
+  if (index < 3) {
+    date.setDate(date.getDate() - index * 2);
+  } else if (index < 33) {
+    date.setDate(1 + ((index - 3) % Math.max(1, date.getDate() - 1)));
+  } else if (index < 63) {
+    date.setMonth(date.getMonth() - 1, 1 + ((index - 33) % 28));
+  } else {
+    date.setMonth(date.getMonth() - 2 - Math.floor((index - 63) / 20), 1 + ((index - 63) % 28));
+  }
+  date.setHours(7 + (index % 4), (index * 15) % 60, 0, 0);
+  return date.toISOString();
+};
+
 export const testStrengthEntries: TestEntry[] = Array.from({ length: 150 }, (_, index) => {
   const exercise = strengthExerciseNames[index % strengthExerciseNames.length];
   const exerciseCount = (index % 3) + 1;
@@ -45,7 +60,7 @@ export const testCardioEntries: TestEntry[] = Array.from({ length: 100 }, (_, in
     detail: `${duration} min · Sensor data pending`,
     accent: '#9BE15D',
     type: 'cardio',
-    date: sessionDate(index + 150),
+    date: cardioSessionDate(index),
     items: [`Activity: ${activity}`, `Duration: ${duration} minutes`, 'Sensor data pending'],
   };
 });

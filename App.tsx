@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { BackHandler, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, BackHandler, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { exerciseGroups } from './exerciseGroups';
 import { motivationalMessages, type Language } from './motivationalMessages';
 import { testEntries } from './testEntries';
@@ -8,12 +8,12 @@ import { testEntries } from './testEntries';
 type Screen = 'home' | 'strength' | 'cardio' | 'recent' | 'settings' | 'details' | 'exercises';
 type WorkoutType = 'strength' | 'cardio';
 type StrengthExercise = { id: string; title: string; repetitions: string; weight: string };
-type Entry = { id: string; title: string; detail: string; accent: string; type: WorkoutType; items: string[]; date: string };
-type Copy = { language: string; overview: string; strength: string; cardio: string; recent: string; settings: string; back: string; logStrength: string; strengthSubtitle: string; logCardio: string; cardioSubtitle: string; exercise: string; repetitions: string; weight: string; selectExercise: string; addExercise: string; saveSession: string; saveActivity: string; exercisesInSession: string; recordingWorkout: string; readyToRecord: string; start: string; stop: string; duration: string; phoneWatchData: string; sensorDetail: string; speed: string; steps: string; heartRate: string; thisWeek: string; sessionsLogged: string; keepBuilding: string; logWorkout: string; recentActivity: string; viewAll: string; recentSubtitle: string; noWorkouts: string; sessionDetails: string; setGoals: string; theme: string; dark: string; light: string; strengthGoal: string; cardioGoal: string; strengthSession: string; exercises: string; reps: string; kg: string; activity: string; minutes: string; sensorPending: string; walking: string; jogging: string; running: string; intention: string };
+type Entry = { id: string; title: string; titleKey?: 'strengthSession' | 'activity'; detail: string; accent: string; type: WorkoutType; items: string[]; date: string };
+type Copy = { language: string; overview: string; strength: string; cardio: string; recent: string; settings: string; back: string; logStrength: string; strengthSubtitle: string; logCardio: string; cardioSubtitle: string; exercise: string; repetitions: string; weight: string; selectExercise: string; addExercise: string; saveSession: string; saveActivity: string; exercisesInSession: string; recordingWorkout: string; readyToRecord: string; start: string; stop: string; duration: string; phoneWatchData: string; sensorDetail: string; speed: string; steps: string; heartRate: string; thisWeek: string; sessionsLogged: string; keepBuilding: string; goalReached?: string; logWorkout: string; recentActivity: string; viewAll: string; recentSubtitle: string; noWorkouts: string; sessionDetails: string; setGoals: string; theme: string; dark: string; light: string; strengthGoal: string; cardioGoal: string; strengthSession: string; exercises: string; reps: string; kg: string; activity: string; minutes: string; sensorPending: string; walking: string; jogging: string; running: string; intention: string };
 
 const translations: Record<Language, Copy> = {
-  en: { language: 'English (UK)', overview: 'Overview', strength: 'Strength', cardio: 'Cardio', recent: 'Recent', settings: 'Settings', back: '‹ Back', logStrength: 'Log strength', strengthSubtitle: 'Build a session with one or more exercises.', logCardio: 'Log cardio', cardioSubtitle: 'Add a walk, jog, or run.', exercise: 'Exercise', repetitions: 'Repetitions', weight: 'Weight (kg)', selectExercise: 'Select exercise', addExercise: 'Add exercise', saveSession: 'Save session', saveActivity: 'Save activity', exercisesInSession: 'Exercises in this session', recordingWorkout: 'Recording workout', readyToRecord: 'Ready to record', start: 'Start', stop: 'Stop', duration: 'Duration (minutes)', phoneWatchData: 'Phone & watch data', sensorDetail: 'Speed, steps, heart rate, and route will appear here when device permissions and wearable sync are connected.', speed: 'Speed', steps: 'Steps', heartRate: 'Heart rate', thisWeek: 'THIS WEEK', sessionsLogged: 'sessions logged', keepBuilding: 'Keep building your routine', logWorkout: 'Log a workout', recentActivity: 'Recent activity', viewAll: 'View all ›', recentSubtitle: 'Your complete workout history.', noWorkouts: 'No {type} workouts logged yet.', sessionDetails: 'Session details', setGoals: 'Set your weekly training goals.', theme: 'Theme', dark: 'Dark', light: 'Light', strengthGoal: 'Strength trainings per week', cardioGoal: 'Cardio trainings per week', strengthSession: 'Strength session', exercises: 'exercises', reps: 'reps', kg: 'kg', activity: 'Activity', minutes: 'minutes', sensorPending: 'Sensor data pending', walking: 'Walking', jogging: 'Jogging', running: 'Running', intention: 'Train with\nintention.' },
-  de: { language: 'Deutsch', overview: 'Übersicht', strength: 'Kraft', cardio: 'Cardio', recent: 'Verlauf', settings: 'Einstellungen', back: '‹ Zurück', logStrength: 'Krafttraining eintragen', strengthSubtitle: 'Erstelle eine Einheit mit einer oder mehreren Übungen.', logCardio: 'Cardio eintragen', cardioSubtitle: 'Füge einen Spaziergang, Lauf oder Jogging hinzu.', exercise: 'Übung', repetitions: 'Wiederholungen', weight: 'Gewicht (kg)', selectExercise: 'Übung auswählen', addExercise: 'Übung hinzufügen', saveSession: 'Einheit speichern', saveActivity: 'Aktivität speichern', exercisesInSession: 'Übungen in dieser Einheit', recordingWorkout: 'Training wird aufgezeichnet', readyToRecord: 'Bereit zur Aufzeichnung', start: 'Start', stop: 'Stopp', duration: 'Dauer (Minuten)', phoneWatchData: 'Telefon- und Uhrdaten', sensorDetail: 'Geschwindigkeit, Schritte, Herzfrequenz und Route erscheinen hier, sobald Berechtigungen und die Wearable-Synchronisierung verbunden sind.', speed: 'Geschwindigkeit', steps: 'Schritte', heartRate: 'Herzfrequenz', thisWeek: 'DIESE WOCHE', sessionsLogged: 'Einheiten aufgezeichnet', keepBuilding: 'Baue deine Routine weiter aus', logWorkout: 'Training eintragen', recentActivity: 'Letzte Aktivitäten', viewAll: 'Alle anzeigen ›', recentSubtitle: 'Dein vollständiger Trainingsverlauf.', noWorkouts: 'Noch keine {type}-Trainings eingetragen.', sessionDetails: 'Einheitsdetails', setGoals: 'Lege deine wöchentlichen Trainingsziele fest.', theme: 'Erscheinungsbild', dark: 'Dunkel', light: 'Hell', strengthGoal: 'Krafttrainings pro Woche', cardioGoal: 'Cardio-Trainings pro Woche', strengthSession: 'Krafteinheit', exercises: 'Übungen', reps: 'Wiederholungen', kg: 'kg', activity: 'Aktivität', minutes: 'Minuten', sensorPending: 'Sensordaten ausstehend', walking: 'Gehen', jogging: 'Joggen', running: 'Laufen', intention: 'Trainiere mit\nAbsicht.' },
+  en: { language: 'English (UK)', overview: 'Overview', strength: 'Strength', cardio: 'Cardio', recent: 'Recent', settings: 'Settings', back: '‹ Back', logStrength: 'Log strength', strengthSubtitle: 'Build a session with one or more exercises.', logCardio: 'Log cardio', cardioSubtitle: 'Add a walk, jog, or run.', exercise: 'Exercise', repetitions: 'Repetitions', weight: 'Weight (kg)', selectExercise: 'Select exercise', addExercise: 'Add exercise', saveSession: 'Save session', saveActivity: 'Save activity', exercisesInSession: 'Exercises in this session', recordingWorkout: 'Recording workout', readyToRecord: 'Ready to record', start: 'Start', stop: 'Stop', duration: 'Duration (minutes)', phoneWatchData: 'Phone & watch data', sensorDetail: 'Speed, steps, heart rate, and route will appear here when device permissions and wearable sync are connected.', speed: 'Speed', steps: 'Steps', heartRate: 'Heart rate', thisWeek: 'THIS WEEK', sessionsLogged: 'sessions logged', keepBuilding: 'Keep building your routine', goalReached: 'You are a machine', logWorkout: 'Log a workout', recentActivity: 'Recent activity', viewAll: 'View all ›', recentSubtitle: 'Your complete workout history.', noWorkouts: 'No {type} workouts logged yet.', sessionDetails: 'Session details', setGoals: 'Set your weekly training goals.', theme: 'Theme', dark: 'Dark', light: 'Light', strengthGoal: 'Strength trainings per week', cardioGoal: 'Cardio trainings per week', strengthSession: 'Strength session', exercises: 'exercises', reps: 'reps', kg: 'kg', activity: 'Activity', minutes: 'minutes', sensorPending: 'Sensor data pending', walking: 'Walking', jogging: 'Jogging', running: 'Running', intention: 'Train with\nintention.' },
+  de: { language: 'Deutsch', overview: 'Übersicht', strength: 'Kraft', cardio: 'Cardio', recent: 'Verlauf', settings: 'Einstellungen', back: '‹ Zurück', logStrength: 'Krafttraining eintragen', strengthSubtitle: 'Erstelle eine Einheit mit einer oder mehreren Übungen.', logCardio: 'Cardio eintragen', cardioSubtitle: 'Füge einen Spaziergang, Lauf oder Jogging hinzu.', exercise: 'Übung', repetitions: 'Wiederholungen', weight: 'Gewicht (kg)', selectExercise: 'Übung auswählen', addExercise: 'Übung hinzufügen', saveSession: 'Einheit speichern', saveActivity: 'Aktivität speichern', exercisesInSession: 'Übungen in dieser Einheit', recordingWorkout: 'Training wird aufgezeichnet', readyToRecord: 'Bereit zur Aufzeichnung', start: 'Start', stop: 'Stopp', duration: 'Dauer (Minuten)', phoneWatchData: 'Telefon- und Uhrdaten', sensorDetail: 'Geschwindigkeit, Schritte, Herzfrequenz und Route erscheinen hier, sobald Berechtigungen und die Wearable-Synchronisierung verbunden sind.', speed: 'Geschwindigkeit', steps: 'Schritte', heartRate: 'Herzfrequenz', thisWeek: 'DIESE WOCHE', sessionsLogged: 'Einheiten aufgezeichnet', keepBuilding: 'Baue deine Routine weiter aus', goalReached: 'Du bist eine Maschine', logWorkout: 'Training eintragen', recentActivity: 'Letzte Aktivitäten', viewAll: 'Alle anzeigen ›', recentSubtitle: 'Dein vollständiger Trainingsverlauf.', noWorkouts: 'Noch keine {type}-Trainings eingetragen.', sessionDetails: 'Einheitsdetails', setGoals: 'Lege deine wöchentlichen Trainingsziele fest.', theme: 'Erscheinungsbild', dark: 'Dunkel', light: 'Hell', strengthGoal: 'Krafttrainings pro Woche', cardioGoal: 'Cardio-Trainings pro Woche', strengthSession: 'Krafteinheit', exercises: 'Übungen', reps: 'Wiederholungen', kg: 'kg', activity: 'Aktivität', minutes: 'Minuten', sensorPending: 'Sensordaten ausstehend', walking: 'Gehen', jogging: 'Joggen', running: 'Laufen', intention: 'Trainiere mit\nAbsicht.' },
   fr: { language: 'Français', overview: 'Aperçu', strength: 'Force', cardio: 'Cardio', recent: 'Historique', settings: 'Réglages', back: '‹ Retour', logStrength: 'Enregistrer la force', strengthSubtitle: 'Créez une séance avec un ou plusieurs exercices.', logCardio: 'Enregistrer le cardio', cardioSubtitle: 'Ajoutez une marche, un jogging ou une course.', exercise: 'Exercice', repetitions: 'Répétitions', weight: 'Poids (kg)', selectExercise: 'Choisir un exercice', addExercise: 'Ajouter un exercice', saveSession: 'Enregistrer la séance', saveActivity: 'Enregistrer l’activité', exercisesInSession: 'Exercices de cette séance', recordingWorkout: 'Enregistrement en cours', readyToRecord: 'Prêt à enregistrer', start: 'Démarrer', stop: 'Arrêter', duration: 'Durée (minutes)', phoneWatchData: 'Données du téléphone et de la montre', sensorDetail: 'La vitesse, les pas, la fréquence cardiaque et le parcours apparaîtront ici lorsque les autorisations et la synchronisation seront activées.', speed: 'Vitesse', steps: 'Pas', heartRate: 'Fréquence cardiaque', thisWeek: 'CETTE SEMAINE', sessionsLogged: 'séances enregistrées', keepBuilding: 'Continuez à construire votre routine', logWorkout: 'Enregistrer une séance', recentActivity: 'Activité récente', viewAll: 'Tout voir ›', recentSubtitle: 'Votre historique complet des séances.', noWorkouts: 'Aucune séance de {type} enregistrée.', sessionDetails: 'Détails de la séance', setGoals: 'Définissez vos objectifs hebdomadaires.', theme: 'Thème', dark: 'Sombre', light: 'Clair', strengthGoal: 'Séances de force par semaine', cardioGoal: 'Séances de cardio par semaine', strengthSession: 'Séance de force', exercises: 'exercices', reps: 'répétitions', kg: 'kg', activity: 'Activité', minutes: 'minutes', sensorPending: 'Données des capteurs en attente', walking: 'Marche', jogging: 'Jogging', running: 'Course', intention: 'Entraînez-vous avec\nintention.' },
   it: { language: 'Italiano', overview: 'Panoramica', strength: 'Forza', cardio: 'Cardio', recent: 'Cronologia', settings: 'Impostazioni', back: '‹ Indietro', logStrength: 'Registra forza', strengthSubtitle: 'Crea una sessione con uno o più esercizi.', logCardio: 'Registra cardio', cardioSubtitle: 'Aggiungi una camminata, una corsa o un jogging.', exercise: 'Esercizio', repetitions: 'Ripetizioni', weight: 'Peso (kg)', selectExercise: 'Seleziona esercizio', addExercise: 'Aggiungi esercizio', saveSession: 'Salva sessione', saveActivity: 'Salva attività', exercisesInSession: 'Esercizi in questa sessione', recordingWorkout: 'Registrazione in corso', readyToRecord: 'Pronto per registrare', start: 'Avvia', stop: 'Ferma', duration: 'Durata (minuti)', phoneWatchData: 'Dati del telefono e dell’orologio', sensorDetail: 'Velocità, passi, frequenza cardiaca e percorso appariranno qui quando saranno collegate autorizzazioni e sincronizzazione.', speed: 'Velocità', steps: 'Passi', heartRate: 'Frequenza cardiaca', thisWeek: 'QUESTA SETTIMANA', sessionsLogged: 'sessioni registrate', keepBuilding: 'Continua a costruire la tua routine', logWorkout: 'Registra allenamento', recentActivity: 'Attività recenti', viewAll: 'Vedi tutto ›', recentSubtitle: 'La cronologia completa dei tuoi allenamenti.', noWorkouts: 'Nessun allenamento di {type} registrato.', sessionDetails: 'Dettagli sessione', setGoals: 'Imposta i tuoi obiettivi settimanali.', theme: 'Tema', dark: 'Scuro', light: 'Chiaro', strengthGoal: 'Allenamenti di forza a settimana', cardioGoal: 'Allenamenti cardio a settimana', strengthSession: 'Sessione di forza', exercises: 'esercizi', reps: 'ripetizioni', kg: 'kg', activity: 'Attività', minutes: 'minuti', sensorPending: 'Dati sensore in attesa', walking: 'Camminata', jogging: 'Jogging', running: 'Corsa', intention: 'Allenati con\nintenzione.' },
   es: { language: 'Español', overview: 'Resumen', strength: 'Fuerza', cardio: 'Cardio', recent: 'Historial', settings: 'Ajustes', back: '‹ Atrás', logStrength: 'Registrar fuerza', strengthSubtitle: 'Crea una sesión con uno o más ejercicios.', logCardio: 'Registrar cardio', cardioSubtitle: 'Añade una caminata, un trote o una carrera.', exercise: 'Ejercicio', repetitions: 'Repeticiones', weight: 'Peso (kg)', selectExercise: 'Seleccionar ejercicio', addExercise: 'Añadir ejercicio', saveSession: 'Guardar sesión', saveActivity: 'Guardar actividad', exercisesInSession: 'Ejercicios de esta sesión', recordingWorkout: 'Grabando entrenamiento', readyToRecord: 'Listo para grabar', start: 'Iniciar', stop: 'Detener', duration: 'Duración (minutos)', phoneWatchData: 'Datos del teléfono y reloj', sensorDetail: 'La velocidad, los pasos, la frecuencia cardíaca y la ruta aparecerán aquí cuando se conecten los permisos y la sincronización.', speed: 'Velocidad', steps: 'Pasos', heartRate: 'Frecuencia cardíaca', thisWeek: 'ESTA SEMANA', sessionsLogged: 'sesiones registradas', keepBuilding: 'Sigue construyendo tu rutina', logWorkout: 'Registrar entrenamiento', recentActivity: 'Actividad reciente', viewAll: 'Ver todo ›', recentSubtitle: 'Tu historial completo de entrenamientos.', noWorkouts: 'Aún no hay entrenamientos de {type}.', sessionDetails: 'Detalles de la sesión', setGoals: 'Define tus objetivos semanales.', theme: 'Tema', dark: 'Oscuro', light: 'Claro', strengthGoal: 'Entrenamientos de fuerza por semana', cardioGoal: 'Entrenamientos de cardio por semana', strengthSession: 'Sesión de fuerza', exercises: 'ejercicios', reps: 'repeticiones', kg: 'kg', activity: 'Actividad', minutes: 'minutos', sensorPending: 'Datos del sensor pendientes', walking: 'Caminar', jogging: 'Trote', running: 'Correr', intention: 'Entrena con\nintención.' },
@@ -30,14 +30,18 @@ export default function App() {
   const [strengthExercises, setStrengthExercises] = useState<StrengthExercise[]>([]);
   const [strengthPresets, setStrengthPresets] = useState<string[]>([]);
   const [activity, setActivity] = useState('Jogging');
-  const [duration, setDuration] = useState('');
+  const [durationHours, setDurationHours] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState('');
+  const [durationSeconds, setDurationSeconds] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [strengthGoal, setStrengthGoal] = useState('3');
   const [cardioGoal, setCardioGoal] = useState('3');
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
+  const [detailsBackScreen, setDetailsBackScreen] = useState<'home' | 'recent'>('recent');
   const [isDark, setIsDark] = useState(true);
   const [language, setLanguage] = useState<Language>('en');
+  const [exerciseSelectorBackScreen, setExerciseSelectorBackScreen] = useState<'home' | 'strength' | 'settings'>('settings');
   const copy = translations[language];
   const recordingStartedAt = useRef<number | null>(null);
 
@@ -59,16 +63,30 @@ export default function App() {
   const saveStrengthSession = () => {
     if (strengthExercises.length === 0) return;
     const exerciseNames = strengthExercises.map((item) => item.title).join(', ');
-    setEntries([{ id: createEntryId(), title: copy.strengthSession, detail: `${strengthExercises.length} ${copy.exercises} · ${exerciseNames}`, accent: '#FF6B4A', type: 'strength', items: strengthExercises.map((item) => `${item.title} · ${item.repetitions} ${copy.reps} · ${item.weight} ${copy.kg}`), date: new Date().toISOString() }, ...entries]);
+    setEntries([{ id: createEntryId(), title: copy.strengthSession, titleKey: 'strengthSession', detail: `${strengthExercises.length} ${copy.exercises} · ${exerciseNames}`, accent: '#FF6B4A', type: 'strength', items: strengthExercises.map((item) => `${item.title} · ${item.repetitions} ${copy.reps} · ${item.weight} ${copy.kg}`), date: new Date().toISOString() }, ...entries]);
     setStrengthExercises([]);
     setScreen('home');
   };
 
   const addCardio = () => {
-    if (!duration.trim()) return;
-    setEntries([{ id: createEntryId(), title: activity, detail: `${duration} min · ${copy.sensorPending}`, accent: '#9BE15D', type: 'cardio', items: [`${copy.activity}: ${activity}`, `${copy.duration}: ${duration} ${copy.minutes}`, copy.sensorPending], date: new Date().toISOString() }, ...entries]);
-    setDuration('');
+    const selectedSeconds = (Number.parseInt(durationHours, 10) || 0) * 3600 + (Number.parseInt(durationMinutes, 10) || 0) * 60 + (Number.parseInt(durationSeconds, 10) || 0);
+    const totalSeconds = recordingSeconds > 0 ? recordingSeconds : selectedSeconds;
+    if (totalSeconds <= 0) return;
+    const savedDuration = formatDuration(totalSeconds);
+    setEntries([{ id: createEntryId(), title: activity, titleKey: 'activity', detail: `${savedDuration} · ${copy.sensorPending}`, accent: '#9BE15D', type: 'cardio', items: [`${copy.activity}: ${activity}`, `${copy.duration}: ${savedDuration}`, copy.sensorPending], date: new Date().toISOString() }, ...entries]);
+    setDurationHours('');
+    setDurationMinutes('');
+    setDurationSeconds('');
+    setRecordingSeconds(0);
     setScreen('home');
+  };
+
+  const deleteAllData = () => {
+    const confirmation = getDeleteDataCopy(language);
+    Alert.alert(confirmation.title, confirmation.message, [
+      { text: confirmation.cancel, style: 'cancel' },
+      { text: confirmation.confirm, style: 'destructive', onPress: () => { setEntries([]); setStrengthPresets([]); setStrengthExercises([]); setExercise(''); setRepetitions(''); setWeight(''); setDurationHours(''); setDurationMinutes(''); setDurationSeconds(''); setRecordingSeconds(0); setStrengthGoal('3'); setCardioGoal('3'); } },
+    ]);
   };
 
   useEffect(() => {
@@ -84,13 +102,13 @@ export default function App() {
   useEffect(() => {
     const handleBackGesture = () => {
       if (screen === 'home') return false;
-      setScreen(screen === 'details' ? 'recent' : screen === 'exercises' ? 'settings' : 'home');
+      setScreen(screen === 'details' ? detailsBackScreen : screen === 'exercises' ? exerciseSelectorBackScreen : 'home');
       return true;
     };
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackGesture);
     return () => subscription.remove();
-  }, [screen]);
+  }, [screen, detailsBackScreen]);
 
   const startRecording = () => {
     recordingStartedAt.current = Date.now();
@@ -101,13 +119,16 @@ export default function App() {
   const stopRecording = () => {
     const seconds = recordingStartedAt.current ? Math.floor((Date.now() - recordingStartedAt.current) / 1000) : recordingSeconds;
     setRecordingSeconds(seconds);
-    setDuration(String(Math.max(1, Math.ceil(seconds / 60))));
+    setDurationHours(String(Math.floor(seconds / 3600)).padStart(2, '0'));
+    setDurationMinutes(String(Math.floor((seconds % 3600) / 60)).padStart(2, '0'));
+    setDurationSeconds(String(seconds % 60).padStart(2, '0'));
     recordingStartedAt.current = null;
     setIsRecording(false);
   };
 
-  const openSession = (entry: Entry) => {
+  const openSession = (entry: Entry, backScreen: 'home' | 'recent') => {
     setSelectedEntry(entry);
+    setDetailsBackScreen(backScreen);
     setScreen('details');
   };
 
@@ -116,15 +137,15 @@ export default function App() {
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ScreenMenu copy={copy} onNavigate={(destination) => setScreen(destination)} />
-        {screen === 'home' && <Home entries={entries} copy={copy} strengthGoal={strengthGoal} cardioGoal={cardioGoal} onAdd={() => setScreen('strength')} onCardio={() => setScreen('cardio')} onRecent={() => setScreen('recent')} onOpenSession={openSession} />}
-        {screen === 'recent' && <RecentActivities entries={entries} copy={copy} onBack={() => setScreen('home')} onOpenSession={openSession} />}
-        {screen === 'settings' && <Settings strengthGoal={strengthGoal} cardioGoal={cardioGoal} language={language} copy={copy} isDark={isDark} onLanguageChange={changeLanguage} onThemeChange={setIsDark} onStrengthGoalChange={setStrengthGoal} onCardioGoalChange={setCardioGoal} onOpenExercises={() => setScreen('exercises')} onBack={() => setScreen('home')} />}
-        {screen === 'exercises' && <ExerciseSelector presets={strengthPresets} language={language} onSelect={(preset) => setStrengthPresets((presets) => presets.includes(preset) ? presets.filter((item) => item !== preset) : [...presets, preset])} copy={copy} onBack={() => setScreen('settings')} />}
-        {screen === 'details' && selectedEntry && <SessionDetails entry={selectedEntry} copy={copy} onBack={() => setScreen('recent')} />}
+        {screen === 'home' && <Home entries={entries} copy={copy} strengthGoal={strengthGoal} cardioGoal={cardioGoal} onAdd={() => setScreen('strength')} onCardio={() => setScreen('cardio')} onRecent={() => setScreen('recent')} onOpenSession={(entry) => openSession(entry, 'home')} />}
+        {screen === 'recent' && <RecentActivities entries={entries} copy={copy} onBack={() => setScreen('home')} onOpenSession={(entry) => openSession(entry, 'recent')} />}
+        {screen === 'settings' && <Settings strengthGoal={strengthGoal} cardioGoal={cardioGoal} language={language} copy={copy} isDark={isDark} onLanguageChange={changeLanguage} onThemeChange={setIsDark} onStrengthGoalChange={setStrengthGoal} onCardioGoalChange={setCardioGoal} onOpenExercises={() => { setExerciseSelectorBackScreen('settings'); setScreen('exercises'); }} onDeleteAllData={deleteAllData} onBack={() => setScreen('home')} />}
+        {screen === 'exercises' && <ExerciseSelector presets={strengthPresets} language={language} onSelect={(preset) => setStrengthPresets((presets) => presets.includes(preset) ? presets.filter((item) => item !== preset) : [...presets, preset])} copy={copy} onBack={() => setScreen(exerciseSelectorBackScreen)} />}
+        {screen === 'details' && selectedEntry && <SessionDetails entry={selectedEntry} copy={copy} onBack={() => setScreen(detailsBackScreen)} />}
         {screen === 'strength' && (
           <EntryForm title={copy.logStrength} subtitle={copy.strengthSubtitle} onBack={() => setScreen('home')} onSave={saveStrengthSession} saveLabel={copy.saveSession} copy={copy}>
             <Text style={styles.fieldLabel}>{copy.exercise}</Text>
-            <ExerciseDropdown value={exercise} onChange={setExercise} copy={copy} options={strengthPresets} />
+            <ExerciseDropdown value={exercise} onChange={setExercise} copy={copy} options={strengthPresets} onEmptySelect={() => { setExerciseSelectorBackScreen('strength'); setScreen('exercises'); }} />
             <View style={styles.fieldRow}>
               <Field label={copy.repetitions} value={repetitions} onChangeText={setRepetitions} placeholder="12" keyboardType="numeric" copy={copy} />
               <Field label={copy.weight} value={weight} onChangeText={setWeight} placeholder="40" keyboardType="decimal-pad" copy={copy} />
@@ -151,7 +172,7 @@ export default function App() {
                 </Pressable>
               </View>
             </View>
-            <Field label={copy.duration} value={duration} onChangeText={setDuration} placeholder="30" keyboardType="numeric" copy={copy} />
+            <DurationInput hours={durationHours} minutes={durationMinutes} seconds={durationSeconds} onChange={(hours, minutes, seconds) => { setDurationHours(hours); setDurationMinutes(minutes); setDurationSeconds(seconds); setRecordingSeconds(0); }} />
             <View style={styles.sensorCard}>
               <Text style={styles.sensorTitle}>{copy.phoneWatchData}</Text>
               <Text style={styles.sensorDetail}>{copy.sensorDetail}</Text>
@@ -185,15 +206,17 @@ function ScreenMenu({ copy, onNavigate }: { copy: Copy; onNavigate: (destination
 }
 
 function Home({ entries, copy, strengthGoal, cardioGoal, onAdd, onCardio, onRecent, onOpenSession }: { entries: Entry[]; copy: Copy; strengthGoal: string; cardioGoal: string; onAdd: () => void; onCardio: () => void; onRecent: () => void; onOpenSession: (entry: Entry) => void }) {
-  const strengthPercentage = getGoalPercentage(entries.filter((entry) => entry.type === 'strength').length, strengthGoal);
-  const cardioPercentage = getGoalPercentage(entries.filter((entry) => entry.type === 'cardio').length, cardioGoal);
+  const currentWeekStart = getWeekStart(new Date()).getTime();
+  const currentWeekEntries = entries.filter((entry) => getWeekStart(new Date(entry.date)).getTime() === currentWeekStart);
+  const strengthPercentage = getGoalPercentage(currentWeekEntries.filter((entry) => entry.type === 'strength').length, strengthGoal);
+  const cardioPercentage = getGoalPercentage(currentWeekEntries.filter((entry) => entry.type === 'cardio').length, cardioGoal);
   return (
     <>
       <View style={styles.header}>
         <View style={styles.headerDate}><Text style={styles.eyebrow}>{formatDate(languageFromCopy(copy))}</Text><Text style={styles.title}>{getMotivationalMessage(languageFromCopy(copy))}</Text></View>
       </View>
       <View style={styles.progressCard}>
-        <View style={styles.progressCopy}><Text style={styles.cardLabel}>{copy.thisWeek}</Text><Text style={styles.progressTitle}>{entries.length} {copy.sessionsLogged}</Text><Text style={styles.progressDetail}>{copy.keepBuilding}</Text></View>
+        <View style={styles.progressCopy}><Text style={styles.cardLabel}>{copy.thisWeek}</Text><Text style={styles.progressTitle}>{currentWeekEntries.length} {copy.sessionsLogged}</Text><Text style={styles.progressDetail}>{(strengthPercentage >= 100 || cardioPercentage >= 100) ? getGoalReachedMessage(languageFromCopy(copy)) : copy.keepBuilding}</Text></View>
         <View style={styles.progressRings}><ProgressCircle label={copy.cardio} percentage={cardioPercentage} accent="#9BE15D" /><ProgressCircle label={copy.strength} percentage={strengthPercentage} accent="#FF6B4A" /></View>
       </View>
       <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{copy.logWorkout}</Text></View>
@@ -202,7 +225,7 @@ function Home({ entries, copy, strengthGoal, cardioGoal, onAdd, onCardio, onRece
         <Pressable style={[styles.actionCard, styles.cardioAction]} onPress={onCardio}><Text style={styles.actionIcon}>→</Text><Text style={styles.actionTitle}>{copy.cardio}</Text><Text style={styles.actionDetail}>{copy.duration} & {copy.speed}</Text></Pressable>
       </View>
       <Pressable style={styles.sectionHeader} onPress={onRecent}><Text style={styles.sectionTitle}>{copy.recentActivity}</Text><Text style={styles.sectionLink}>{copy.viewAll}</Text></Pressable>
-      {entries.slice(0, 4).map((entry) => <Pressable key={entry.id} style={styles.sessionRow} onPress={() => onOpenSession(entry)}><View style={[styles.sessionMark, { backgroundColor: entry.accent }]} /><View style={styles.sessionCopy}><Text style={styles.sessionTitle}>{entry.title}</Text><Text style={styles.sessionDetail}>{entry.detail}</Text></View><Text style={styles.chevron}>›</Text></Pressable>)}
+      {entries.slice(0, 4).map((entry) => <Pressable key={entry.id} style={styles.sessionRow} onPress={() => onOpenSession(entry)}><View style={[styles.sessionMark, { backgroundColor: entry.accent }]} /><View style={styles.sessionCopy}><Text style={styles.sessionTitle}>{getEntryTitle(entry, copy)}</Text><Text style={styles.sessionDetail}>{entry.detail}</Text></View><Text style={styles.chevron}>›</Text></Pressable>)}
     </>
   );
 }
@@ -211,8 +234,8 @@ function ProgressCircle({ label, percentage, accent }: { label: string; percenta
   return <View style={styles.progressCircleGroup}><View style={[styles.progressRing, { borderColor: accent }]}><Text style={styles.progressNumber}>{percentage}%</Text></View><Text style={styles.progressCircleLabel}>{label}</Text></View>;
 }
 
-function Settings({ strengthGoal, cardioGoal, language, copy, isDark, onLanguageChange, onThemeChange, onStrengthGoalChange, onCardioGoalChange, onOpenExercises, onBack }: { strengthGoal: string; cardioGoal: string; language: Language; copy: Copy; isDark: boolean; onLanguageChange: (value: Language) => void; onThemeChange: (value: boolean) => void; onStrengthGoalChange: (value: string) => void; onCardioGoalChange: (value: string) => void; onOpenExercises: () => void; onBack: () => void }) {
-  return <><Pressable style={styles.backButton} onPress={onBack} hitSlop={8}><Text style={styles.back}>{copy.back}</Text></Pressable><Text style={styles.formTitle}>{copy.settings}</Text><Text style={styles.formSubtitle}>{copy.setGoals}</Text><View style={styles.settingsForm}><LanguageDropdown value={language} onChange={onLanguageChange} copy={copy} /><ThemeToggle isDark={isDark} onChange={onThemeChange} copy={copy} /><Field label={copy.strengthGoal} value={strengthGoal} onChangeText={onStrengthGoalChange} placeholder="3" keyboardType="numeric" copy={copy} /><Field label={copy.cardioGoal} value={cardioGoal} onChangeText={onCardioGoalChange} placeholder="3" keyboardType="numeric" copy={copy} /><Pressable style={styles.secondaryButton} onPress={onOpenExercises}><Text style={styles.secondaryButtonText}>{copy.addExercise}</Text></Pressable></View></>;
+function Settings({ strengthGoal, cardioGoal, language, copy, isDark, onLanguageChange, onThemeChange, onStrengthGoalChange, onCardioGoalChange, onOpenExercises, onDeleteAllData, onBack }: { strengthGoal: string; cardioGoal: string; language: Language; copy: Copy; isDark: boolean; onLanguageChange: (value: Language) => void; onThemeChange: (value: boolean) => void; onStrengthGoalChange: (value: string) => void; onCardioGoalChange: (value: string) => void; onOpenExercises: () => void; onDeleteAllData: () => void; onBack: () => void }) {
+  return <><Pressable style={styles.backButton} onPress={onBack} hitSlop={8}><Text style={styles.back}>{copy.back}</Text></Pressable><Text style={styles.formTitle}>{copy.settings}</Text><Text style={styles.formSubtitle}>{copy.setGoals}</Text><View style={styles.settingsForm}><LanguageDropdown value={language} onChange={onLanguageChange} copy={copy} /><ThemeToggle isDark={isDark} onChange={onThemeChange} copy={copy} /><Field label={copy.strengthGoal} value={strengthGoal} onChangeText={onStrengthGoalChange} placeholder="3" keyboardType="numeric" copy={copy} /><Field label={copy.cardioGoal} value={cardioGoal} onChangeText={onCardioGoalChange} placeholder="3" keyboardType="numeric" copy={copy} /><Pressable style={styles.secondaryButton} onPress={onOpenExercises}><Text style={styles.secondaryButtonText}>{copy.addExercise}</Text></Pressable><Pressable style={styles.deleteButton} onPress={onDeleteAllData}><Text style={styles.deleteButtonText}>{getDeleteDataCopy(language).button}</Text></Pressable></View></>;
 }
 
 function ThemeToggle({ isDark, onChange, copy }: { isDark: boolean; onChange: (value: boolean) => void; copy: Copy }) {
@@ -267,7 +290,7 @@ function RecentActivities({ entries, copy, onBack, onOpenSession }: { entries: E
           {openGroupKey === group.key && group.entries.map((entry) => (
             <Pressable key={entry.id} style={styles.sessionRow} onPress={() => onOpenSession(entry)}>
               <View style={[styles.sessionMark, { backgroundColor: entry.accent }]} />
-              <View style={styles.sessionCopy}><Text style={styles.sessionTitle}>{entry.title}</Text><Text style={styles.sessionDetail}>{entry.detail}</Text><Text style={styles.sessionDate}>{formatEntryDate(entry.date, languageFromCopy(copy))}</Text></View>
+              <View style={styles.sessionCopy}><Text style={styles.sessionTitle}>{getEntryTitle(entry, copy)}</Text><Text style={styles.sessionDetail}>{entry.detail}</Text><Text style={styles.sessionDate}>{formatEntryDate(entry.date, languageFromCopy(copy))}</Text></View>
               <Text style={styles.chevron}>›</Text>
             </Pressable>
           ))}
@@ -282,7 +305,7 @@ function SessionDetails({ entry, copy, onBack }: { entry: Entry; copy: Copy; onB
     <>
       <Pressable style={styles.backButton} onPress={onBack} hitSlop={8}><Text style={styles.back}>{copy.back}</Text></Pressable>
       <View style={[styles.detailsAccent, { backgroundColor: entry.accent }]} />
-      <Text style={styles.formTitle}>{entry.title}</Text>
+      <Text style={styles.formTitle}>{getEntryTitle(entry, copy)}</Text>
       <Text style={styles.formSubtitle}>{entry.detail}</Text>
       <Text style={styles.sessionDate}>{formatEntryDate(entry.date, languageFromCopy(copy))}</Text>
       <View style={styles.detailsList}>
@@ -303,6 +326,22 @@ function Field({ label, value, onChangeText, placeholder, keyboardType = 'defaul
 
 function Metric({ label, value }: { label: string; value: string }) {
   return <View style={styles.metric}><Text style={styles.metricLabel}>{label}</Text><Text style={styles.metricValue}>{value}</Text></View>;
+}
+
+function DurationInput({ hours, minutes, seconds, onChange }: { hours: string; minutes: string; seconds: string; onChange: (hours: string, minutes: string, seconds: string) => void }) {
+  const sanitize = (value: string, max: number) => {
+    const digits = value.replace(/\D/g, '').slice(0, 2);
+    if (!digits) return '';
+    return String(Math.min(max, Number.parseInt(digits, 10)));
+  };
+
+  return <View style={styles.durationInput}>
+    <TextInput style={styles.durationField} value={hours} onChangeText={(value) => onChange(sanitize(value, 24), minutes, seconds)} placeholder="HH" placeholderTextColor="#82909A" keyboardType="numeric" maxLength={2} selectTextOnFocus />
+    <Text style={styles.durationSeparator}>:</Text>
+    <TextInput style={styles.durationField} value={minutes} onChangeText={(value) => onChange(hours, sanitize(value, 59), seconds)} placeholder="MM" placeholderTextColor="#82909A" keyboardType="numeric" maxLength={2} selectTextOnFocus />
+    <Text style={styles.durationSeparator}>:</Text>
+    <TextInput style={styles.durationField} value={seconds} onChangeText={(value) => onChange(hours, minutes, sanitize(value, 59))} placeholder="SS" placeholderTextColor="#82909A" keyboardType="numeric" maxLength={2} selectTextOnFocus />
+  </View>;
 }
 
 function ActivityDropdown({ value, onChange, copy }: { value: string; onChange: (value: string) => void; copy: Copy }) {
@@ -329,12 +368,12 @@ function ActivityDropdown({ value, onChange, copy }: { value: string; onChange: 
   );
 }
 
-function ExerciseDropdown({ value, onChange, copy, options }: { value: string; onChange: (value: string) => void; copy: Copy; options: string[] }) {
+function ExerciseDropdown({ value, onChange, copy, options, onEmptySelect }: { value: string; onChange: (value: string) => void; copy: Copy; options: string[]; onEmptySelect: () => void }) {
   const [open, setOpen] = useState(false);
 
   return (
     <View style={styles.dropdownContainer}>
-      <Pressable style={styles.dropdownButton} onPress={() => setOpen(!open)}>
+      <Pressable style={styles.dropdownButton} onPress={() => options.length === 0 ? onEmptySelect() : setOpen(!open)}>
         <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]}>{value || copy.selectExercise}</Text>
         <Text style={styles.dropdownArrow}>{open ? '▲' : '▼'}</Text>
       </Pressable>
@@ -366,10 +405,18 @@ function formatRecordingTime(seconds: number) {
   return `${minutes}:${remainingSeconds}`;
 }
 
+function formatDuration(totalSeconds: number) {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+  const remainingSeconds = (seconds % 60).toString().padStart(2, '0');
+  return hours > 0 ? `${hours.toString().padStart(2, '0')}:${minutes}:${remainingSeconds}` : `${minutes}:${remainingSeconds}`;
+}
+
 function getGoalPercentage(completed: number, goal: string) {
   const target = Number.parseInt(goal, 10);
   if (!Number.isFinite(target) || target <= 0) return 0;
-  return Math.min(100, Math.round((completed / target) * 100));
+  return Math.round((completed / target) * 100);
 }
 
 function languageFromCopy(copy: Copy): Language {
@@ -406,6 +453,30 @@ function formatGroupLabel(date: Date, grouping: 'week' | 'month' | 'year', langu
 
 function getGroupingLabel(grouping: 'week' | 'month' | 'year', language: Language) {
   return { en: { week: 'Week', month: 'Month', year: 'Year' }, de: { week: 'Woche', month: 'Monat', year: 'Jahr' }, fr: { week: 'Semaine', month: 'Mois', year: 'Année' }, it: { week: 'Settimana', month: 'Mese', year: 'Anno' }, es: { week: 'Semana', month: 'Mes', year: 'Año' } }[language][grouping];
+}
+
+function getGoalReachedMessage(language: Language) {
+  return { en: 'You are a machine', de: 'Du bist eine Maschine', fr: 'Vous êtes une machine', it: 'Sei una macchina', es: 'Eres una máquina' }[language];
+}
+
+function getEntryTitle(entry: Entry, copy: Copy) {
+  if (entry.titleKey === 'strengthSession') return copy.strengthSession;
+  if (entry.titleKey === 'activity') return getActivityLabel(entry.title, copy);
+  return entry.title;
+}
+
+function getActivityLabel(activity: string, copy: Copy) {
+  return { Walking: copy.walking, Jogging: copy.jogging, Running: copy.running }[activity] || activity;
+}
+
+function getDeleteDataCopy(language: Language) {
+  return {
+    en: { button: 'Delete all data', title: 'Delete all data?', message: 'All saved activities, exercises, goals, and form data will be permanently lost.', cancel: 'Cancel', confirm: 'Delete' },
+    de: { button: 'Alle Daten löschen', title: 'Alle Daten löschen?', message: 'Alle gespeicherten Aktivitäten, Übungen, Ziele und Formulardaten gehen dauerhaft verloren.', cancel: 'Abbrechen', confirm: 'Löschen' },
+    fr: { button: 'Supprimer toutes les données', title: 'Supprimer toutes les données ?', message: 'Toutes les activités, tous les exercices, objectifs et formulaires enregistrés seront définitivement perdus.', cancel: 'Annuler', confirm: 'Supprimer' },
+    it: { button: 'Elimina tutti i dati', title: 'Eliminare tutti i dati?', message: 'Tutte le attività, gli esercizi, gli obiettivi e i dati dei moduli salvati andranno persi definitivamente.', cancel: 'Annulla', confirm: 'Elimina' },
+    es: { button: 'Eliminar todos los datos', title: '¿Eliminar todos los datos?', message: 'Todas las actividades, ejercicios, objetivos y datos de formularios guardados se perderán permanentemente.', cancel: 'Cancelar', confirm: 'Eliminar' },
+  }[language];
 }
 
 function formatEntryDate(value: string, language: Language) {
@@ -447,14 +518,14 @@ function NavButton({ icon, label, active, onPress }: { icon: string; label: stri
 const darkStyles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0B1014' }, container: { padding: 24, paddingBottom: 32 },
   menuBar: { position: 'absolute', top: 24, right: 24, alignItems: 'flex-end', zIndex: 30 },
-  presetPicker: { zIndex: 4, elevation: 4 }, exerciseList: { backgroundColor: '#151D24', borderRadius: 12, borderWidth: 1, borderColor: '#2A3740', overflow: 'hidden', elevation: 10 }, presetSearch: { backgroundColor: '#1B272E', color: '#F2F5F1', minHeight: 48, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: '#2A3740' }, presetCategory: { color: '#9BE15D', fontSize: 12, fontWeight: '800', paddingHorizontal: 15, paddingTop: 12, paddingBottom: 4 }, dropdownOptionSelected: { backgroundColor: '#24332B', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownOptionSelectedText: { color: '#F2F5F1', fontWeight: '800' }, dropdownCheck: { color: '#9BE15D', fontSize: 16, fontWeight: '800' },
+  presetPicker: { zIndex: 4, elevation: 4 }, exerciseList: { backgroundColor: '#151D24', borderRadius: 12, borderWidth: 1, borderColor: '#2A3740', overflow: 'hidden', elevation: 10 }, presetSearch: { backgroundColor: '#1B272E', color: '#F2F5F1', minHeight: 48, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: '#2A3740' }, presetCategory: { color: '#9BE15D', fontSize: 12, fontWeight: '800', paddingHorizontal: 15, paddingTop: 12, paddingBottom: 4 }, dropdownOptionSelected: { backgroundColor: '#24332B', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownOptionSelectedText: { color: '#F2F5F1', fontWeight: '800' }, dropdownCheck: { color: '#9BE15D', fontSize: 16, fontWeight: '800' }, durationInput: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, durationField: { minWidth: 72, minHeight: 58, borderRadius: 14, borderWidth: 2, borderColor: '#42534A', backgroundColor: '#24332B', color: '#F2F5F1', fontSize: 26, fontWeight: '800', textAlign: 'center', paddingHorizontal: 8 }, durationSeparator: { color: '#9BE15D', fontSize: 28, fontWeight: '800' }, deleteButton: { backgroundColor: '#5B2027', borderRadius: 12, minHeight: 52, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#C94F5B' }, deleteButtonText: { color: '#FFD9DC', fontSize: 15, fontWeight: '800' },
   settingsForm: { gap: 18 }, themeToggle: { flexDirection: 'row', gap: 4, backgroundColor: '#1B272E', borderRadius: 12, padding: 4 }, themeOption: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 9 }, themeOptionActive: { backgroundColor: '#2A3740' }, themeOptionText: { color: '#AAB7B0', fontSize: 14, fontWeight: '700' }, themeOptionTextActive: { color: '#F2F5F1', fontWeight: '800' },
   secondaryButton: { backgroundColor: '#2A211E', borderRadius: 12, minHeight: 48, alignItems: 'center', justifyContent: 'center' }, secondaryButtonText: { color: '#FF8A70', fontSize: 15, fontWeight: '800' }, pendingExercises: { backgroundColor: '#151D24', borderRadius: 16, padding: 16, marginTop: 2 }, pendingTitle: { color: '#F2F5F1', fontSize: 15, fontWeight: '800', marginBottom: 12 }, pendingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderTopWidth: 1, borderTopColor: '#2A3740' }, pendingIndex: { color: '#FF6B4A', fontSize: 15, fontWeight: '800', width: 28 },
   detailsAccent: { width: 48, height: 8, borderRadius: 4, marginBottom: 22 }, detailsList: { backgroundColor: '#151D24', borderRadius: 16, padding: 18, marginTop: 4 }, detailsHeading: { color: '#F2F5F1', fontSize: 16, fontWeight: '800', marginBottom: 12 }, detailsRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 9, borderTopWidth: 1, borderTopColor: '#2A3740' }, detailsBullet: { color: '#FF6B4A', fontSize: 18, lineHeight: 20, marginRight: 10 }, detailsText: { flex: 1, color: '#AAB7B0', fontSize: 15, lineHeight: 21 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, zIndex: 20 }, headerDate: { marginTop: 3 }, eyebrow: { color: '#82909A', fontSize: 12, fontWeight: '700', letterSpacing: 1.2, marginBottom: 10 }, title: { color: '#F2F5F1', fontSize: 38, fontWeight: '800', lineHeight: 42 }, avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#24332B', alignItems: 'center', justifyContent: 'center', marginTop: 3 }, hamburger: { width: 20, gap: 4 }, hamburgerLine: { height: 2, width: 20, borderRadius: 1, backgroundColor: '#9BE15D' }, avatarText: { color: '#9BE15D', fontSize: 18, fontWeight: '800' }, menuDropdown: { position: 'absolute', top: 60, right: 0, width: 170, backgroundColor: '#151D24', borderRadius: 14, borderWidth: 1, borderColor: '#2A3740', overflow: 'visible', zIndex: 30, elevation: 12, shadowColor: '#000000', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }, menuLanguage: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#2A3740' }, menuItem: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#2A3740' }, menuItemText: { color: '#F2F5F1', fontSize: 15, fontWeight: '700' },
   progressCard: { backgroundColor: '#151D24', borderRadius: 20, padding: 22, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }, progressCopy: { flex: 1 }, cardLabel: { color: '#9BE15D', fontSize: 11, fontWeight: '800', letterSpacing: 1.4, marginBottom: 12 }, progressTitle: { color: '#F2F5F1', fontSize: 22, fontWeight: '800', marginBottom: 6 }, progressDetail: { color: '#AAB7B0', fontSize: 14 }, progressRings: { flexDirection: 'row', gap: 10, marginLeft: 12 }, progressCircleGroup: { alignItems: 'center' }, progressRing: { width: 62, height: 62, borderRadius: 31, borderWidth: 6, alignItems: 'center', justifyContent: 'center' }, progressNumber: { color: '#F2F5F1', fontSize: 14, fontWeight: '800' }, progressCircleLabel: { color: '#AAB7B0', fontSize: 10, fontWeight: '700', marginTop: 5 },
   sectionHeader: { marginBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, sectionTitle: { color: '#F2F5F1', fontSize: 20, fontWeight: '800' }, sectionLink: { color: '#FF6B4A', fontSize: 13, fontWeight: '800' }, actionRow: { flexDirection: 'row', gap: 12, marginBottom: 30 }, actionCard: { flex: 1, borderRadius: 16, padding: 18, minHeight: 126 }, strengthAction: { backgroundColor: '#38231F' }, cardioAction: { backgroundColor: '#20352B' }, actionIcon: { color: '#F2F5F1', fontSize: 25, fontWeight: '400', marginBottom: 14 }, actionTitle: { color: '#F2F5F1', fontSize: 17, fontWeight: '800', marginBottom: 5 }, actionDetail: { color: '#AAB7B0', fontSize: 13 },
-  sessionRow: { backgroundColor: '#151D24', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12 }, sessionMark: { width: 10, height: 42, borderRadius: 5, marginRight: 14 }, sessionCopy: { flex: 1 }, sessionTitle: { color: '#F2F5F1', fontSize: 16, fontWeight: '700', marginBottom: 5 }, sessionDetail: { color: '#82909A', fontSize: 13 }, sessionDate: { color: '#71808A', fontSize: 12, marginTop: 5 }, groupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, groupHeading: { color: '#9BE15D', fontSize: 14, fontWeight: '800', marginTop: 8, marginBottom: 10, textTransform: 'uppercase' }, groupChevron: { color: '#9BE15D', fontSize: 12, marginRight: 4 }, chevron: { color: '#71808A', fontSize: 28, fontWeight: '300' },
+  sessionRow: { backgroundColor: '#151D24', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12 }, sessionMark: { width: 10, height: 42, borderRadius: 5, marginRight: 14 }, sessionCopy: { flex: 1 }, sessionTitle: { color: '#F2F5F1', fontSize: 16, fontWeight: '700', marginBottom: 5 }, sessionDetail: { color: '#82909A', fontSize: 13 }, sessionDate: { color: '#71808A', fontSize: 12, marginTop: 5 }, groupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, groupHeading: { color: '#9BE15D', fontSize: 14, fontWeight: '800', marginTop: 8, marginBottom: 10, textTransform: 'uppercase' }, groupChevron: { color: '#9BE15D', fontSize: 12, marginRight: 4 }, timeDialRow: { flexDirection: 'row', gap: 12, justifyContent: 'center' }, timeDial: { minWidth: 92, minHeight: 142, paddingVertical: 18, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderRadius: 46, borderWidth: 2, borderColor: '#42534A', backgroundColor: '#24332B', shadowColor: '#000000', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, dialValue: { color: '#F2F5F1', fontSize: 34, fontWeight: '800', minHeight: 42 }, dialLabel: { color: '#9BE15D', fontSize: 12, fontWeight: '800', marginTop: 8 }, chevron: { color: '#71808A', fontSize: 28, fontWeight: '300' },
   navBar: { borderTopWidth: 1, borderTopColor: '#2A3740', backgroundColor: '#10171D', flexDirection: 'row', justifyContent: 'space-around', paddingTop: 10, paddingBottom: 12 }, navButton: { alignItems: 'center', flex: 1 }, navIcon: { color: '#4B5962', fontSize: 19, lineHeight: 22, marginBottom: 3 }, navIconActive: { color: '#9BE15D' }, navDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4B5962', marginBottom: 6 }, navDotActive: { backgroundColor: '#9BE15D', width: 18 }, navText: { color: '#82909A', fontSize: 11, fontWeight: '700' }, navTextActive: { color: '#9BE15D' }, languageOptionContent: { flexDirection: 'row', alignItems: 'center', gap: 10 }, languageFlag: { fontSize: 20 },
   backButton: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', marginBottom: 16 }, back: { color: '#FF6B4A', fontSize: 16, fontWeight: '700' }, formTitle: { color: '#F2F5F1', fontSize: 32, fontWeight: '800', marginBottom: 8 }, formSubtitle: { color: '#82909A', fontSize: 15, marginBottom: 28 }, form: { gap: 18 }, fieldRow: { flexDirection: 'row', gap: 12 }, field: { flex: 1 }, fieldLabel: { color: '#AAB7B0', fontSize: 13, fontWeight: '700', marginBottom: 8 }, input: { backgroundColor: '#151D24', borderRadius: 12, minHeight: 52, paddingHorizontal: 15, color: '#F2F5F1', fontSize: 16, borderWidth: 1, borderColor: '#2A3740' }, historyTabs: { flexDirection: 'row', backgroundColor: '#1B272E', borderRadius: 12, padding: 4, marginBottom: 20 }, historyTab: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 9 }, historyTabActive: { backgroundColor: '#2A3740' }, historyTabText: { color: '#AAB7B0', fontSize: 14, fontWeight: '700' }, historyTabTextActive: { color: '#F2F5F1', fontWeight: '800' }, emptyHistory: { color: '#82909A', fontSize: 15, textAlign: 'center', marginTop: 24 }, dropdownContainer: { zIndex: 10, elevation: 10 }, dropdownButton: { backgroundColor: '#151D24', borderRadius: 12, minHeight: 52, paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#2A3740' }, dropdownText: { color: '#F2F5F1', fontSize: 16 }, dropdownPlaceholder: { color: '#82909A' }, dropdownArrow: { color: '#9BE15D', fontSize: 12 }, dropdownMenu: { position: 'absolute', top: 58, left: 0, right: 0, backgroundColor: '#151D24', borderRadius: 12, borderWidth: 1, borderColor: '#2A3740', overflow: 'hidden', elevation: 10, shadowColor: '#000000', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }, dropdownOption: { paddingHorizontal: 15, paddingVertical: 14 }, dropdownOptionText: { color: '#AAB7B0', fontSize: 15 }, dropdownOptionActive: { color: '#9BE15D', fontWeight: '800' }, recordingCard: { backgroundColor: '#151D24', borderRadius: 16, padding: 18, alignItems: 'center' }, recordingTime: { color: '#F2F5F1', fontSize: 32, fontWeight: '800', letterSpacing: 1 }, recordingStatus: { color: '#AAB7B0', fontSize: 13, marginTop: 4, marginBottom: 16 }, recordingActions: { flexDirection: 'row', gap: 10 }, recordButton: { backgroundColor: '#FF6B4A', borderRadius: 10, minWidth: 110, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, recordButtonDisabled: { opacity: 0.45 }, recordButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' }, stopButton: { backgroundColor: '#DCE7DF', borderRadius: 10, minWidth: 110, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, stopButtonDisabled: { opacity: 0.45 }, stopButtonText: { color: '#0B1014', fontSize: 15, fontWeight: '800' }, sensorCard: { backgroundColor: '#20352B', borderRadius: 16, padding: 18, marginTop: 8 }, sensorTitle: { color: '#9BE15D', fontSize: 16, fontWeight: '800', marginBottom: 8 }, sensorDetail: { color: '#AAB7B0', fontSize: 13, lineHeight: 19, marginBottom: 18 }, sensorGrid: { flexDirection: 'row', gap: 8 }, metric: { flex: 1, backgroundColor: '#151D24', borderRadius: 10, padding: 10 }, metricLabel: { color: '#82909A', fontSize: 11, marginBottom: 5 }, metricValue: { color: '#F2F5F1', fontSize: 14, fontWeight: '800' }, primaryButton: { zIndex: 0, elevation: 0, backgroundColor: '#FF6B4A', borderRadius: 14, minHeight: 56, alignItems: 'center', justifyContent: 'center', marginTop: 28, marginBottom: 20 }, primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 });
@@ -468,6 +539,8 @@ const lightOverrides = StyleSheet.create({
     hamburgerLine: { backgroundColor: '#315B4C' },
     menuDropdown: { backgroundColor: '#FFFFFF', borderColor: '#E1E4DD', shadowColor: '#1D2824' },
     exerciseList: { backgroundColor: '#FFFFFF', borderColor: '#E1E4DD' },
+    durationField: { borderColor: '#B8CDBE', backgroundColor: '#E7EEE9', color: '#1D2824' },
+    durationSeparator: { color: '#315B4C' },
     presetSearch: { backgroundColor: '#F7F5F0', color: '#1D2824', borderBottomColor: '#E1E4DD' },
     presetCategory: { color: '#315B4C' },
     menuLanguage: { borderBottomColor: '#E1E4DD' },
@@ -490,6 +563,10 @@ const lightOverrides = StyleSheet.create({
     sessionDetail: { color: '#7B817A' },
     sessionDate: { color: '#8A928B' },
     groupChevron: { color: '#315B4C' },
+    dialSwipeHint: { color: '#315B4C' },
+    dialValue: { color: '#1D2824' },
+    dialLabel: { color: '#7B817A' },
+    timeDial: { borderColor: '#B8CDBE', backgroundColor: '#E7EEE9' },
     groupHeading: { color: '#315B4C' },
     navBar: { borderTopColor: '#E1E4DD', backgroundColor: '#FFFFFF' },
     navIcon: { color: '#B5BBB4' },
