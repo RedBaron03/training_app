@@ -3,6 +3,7 @@
     "name": "Fitness Tracker",
     "slug": "training-app",
     "version": "1.0.0",
+    "icon": "./assets/dumbbell-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
@@ -18,7 +19,11 @@
       }
     },
     "android": {
-      "package": "com.blueballsmedia.trainingapp"
+      "package": "com.blueballsmedia.trainingapp",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/dumbbell-icon.png",
+        "backgroundColor": "#0B1014"
+      }
     }
   }
 }
