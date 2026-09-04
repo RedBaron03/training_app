@@ -1,22 +1,24 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert, BackHandler, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { exerciseGroups } from './exerciseGroups';
+import { Alert, BackHandler, Linking, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { exerciseGroups, type ExerciseGroup } from './exerciseGroups';
 import { motivationalMessages, type Language } from './motivationalMessages';
+import { mergeExerciseGroups, translateToAllLanguages, type CustomExercise } from './customExercises';
+import { isHealthConnectAvailable, pollLiveMetrics, requestHealthPermissions, type LiveHealthMetrics } from './healthConnect';
 
 type Screen = 'home' | 'strength' | 'cardio' | 'recent' | 'settings' | 'details' | 'exercises';
 type WorkoutType = 'strength' | 'cardio';
 type StrengthExercise = { id: string; title: string; repetitions: string; weight: string };
 type Entry = { id: string; title: string; titleKey?: 'strengthSession' | 'activity'; detail: string; accent: string; type: WorkoutType; items: string[]; date: string };
-type Copy = { language: string; overview: string; strength: string; cardio: string; recent: string; settings: string; back: string; logStrength: string; strengthSubtitle: string; logCardio: string; cardioSubtitle: string; exercise: string; repetitions: string; weight: string; selectExercise: string; addExercise: string; saveSession: string; saveActivity: string; exercisesInSession: string; recordingWorkout: string; readyToRecord: string; start: string; stop: string; duration: string; phoneWatchData: string; sensorDetail: string; speed: string; steps: string; heartRate: string; thisWeek: string; sessionsLogged: string; keepBuilding: string; goalReached?: string; logWorkout: string; recentActivity: string; viewAll: string; recentSubtitle: string; noWorkouts: string; sessionDetails: string; setGoals: string; theme: string; dark: string; light: string; strengthGoal: string; cardioGoal: string; strengthSession: string; exercises: string; reps: string; kg: string; activity: string; minutes: string; sensorPending: string; walking: string; jogging: string; running: string; intention: string };
+type Copy = { language: string; overview: string; strength: string; cardio: string; recent: string; settings: string; back: string; logStrength: string; strengthSubtitle: string; logCardio: string; cardioSubtitle: string; exercise: string; repetitions: string; weight: string; selectExercise: string; addExercise: string; saveSession: string; saveActivity: string; exercisesInSession: string; recordingWorkout: string; readyToRecord: string; start: string; stop: string; duration: string; phoneWatchData: string; sensorDetail: string; speed: string; steps: string; heartRate: string; calories: string; thisWeek: string; sessionsLogged: string; keepBuilding: string; goalReached?: string; logWorkout: string; recentActivity: string; viewAll: string; recentSubtitle: string; noWorkouts: string; sessionDetails: string; setGoals: string; theme: string; dark: string; light: string; strengthGoal: string; cardioGoal: string; strengthSession: string; exercises: string; reps: string; kg: string; activity: string; minutes: string; sensorPending: string; walking: string; jogging: string; running: string; intention: string; addNewExercise: string; chooseCategory: string; confirmAdd: string; translatingExercise: string; translateExerciseFailed: string; installHealthConnect: string; healthConnectMissing: string };
 
 const translations: Record<Language, Copy> = {
-  en: { language: 'English (UK)', overview: 'Overview', strength: 'Strength', cardio: 'Cardio', recent: 'Recent', settings: 'Settings', back: '‹ Back', logStrength: 'Log strength', strengthSubtitle: 'Build a session with one or more exercises.', logCardio: 'Log cardio', cardioSubtitle: 'Add a walk, jog, or run.', exercise: 'Exercise', repetitions: 'Repetitions', weight: 'Weight (kg)', selectExercise: 'Select exercise', addExercise: 'Add exercise', saveSession: 'Save session', saveActivity: 'Save activity', exercisesInSession: 'Exercises in this session', recordingWorkout: 'Recording workout', readyToRecord: 'Ready to record', start: 'Start', stop: 'Stop', duration: 'Duration (minutes)', phoneWatchData: 'Phone & watch data', sensorDetail: 'Speed, steps, heart rate, and route will appear here when device permissions and wearable sync are connected.', speed: 'Speed', steps: 'Steps', heartRate: 'Heart rate', thisWeek: 'THIS WEEK', sessionsLogged: 'sessions logged', keepBuilding: 'Keep building your routine', goalReached: 'You are a machine', logWorkout: 'Log a workout', recentActivity: 'Recent activity', viewAll: 'View all ›', recentSubtitle: 'Your complete workout history.', noWorkouts: 'No {type} workouts logged yet.', sessionDetails: 'Session details', setGoals: 'Set your weekly training goals.', theme: 'Theme', dark: 'Dark', light: 'Light', strengthGoal: 'Strength trainings per week', cardioGoal: 'Cardio trainings per week', strengthSession: 'Strength session', exercises: 'exercises', reps: 'reps', kg: 'kg', activity: 'Activity', minutes: 'minutes', sensorPending: 'Sensor data pending', walking: 'Walking', jogging: 'Jogging', running: 'Running', intention: 'Train with\nintention.' },
-  de: { language: 'Deutsch', overview: 'Übersicht', strength: 'Kraft', cardio: 'Cardio', recent: 'Verlauf', settings: 'Einstellungen', back: '‹ Zurück', logStrength: 'Krafttraining eintragen', strengthSubtitle: 'Erstelle eine Einheit mit einer oder mehreren Übungen.', logCardio: 'Cardio eintragen', cardioSubtitle: 'Füge einen Spaziergang, Lauf oder Jogging hinzu.', exercise: 'Übung', repetitions: 'Wiederholungen', weight: 'Gewicht (kg)', selectExercise: 'Übung auswählen', addExercise: 'Übung hinzufügen', saveSession: 'Einheit speichern', saveActivity: 'Aktivität speichern', exercisesInSession: 'Übungen in dieser Einheit', recordingWorkout: 'Training wird aufgezeichnet', readyToRecord: 'Bereit zur Aufzeichnung', start: 'Start', stop: 'Stopp', duration: 'Dauer (Minuten)', phoneWatchData: 'Telefon- und Uhrdaten', sensorDetail: 'Geschwindigkeit, Schritte, Herzfrequenz und Route erscheinen hier, sobald Berechtigungen und die Wearable-Synchronisierung verbunden sind.', speed: 'Geschwindigkeit', steps: 'Schritte', heartRate: 'Herzfrequenz', thisWeek: 'DIESE WOCHE', sessionsLogged: 'Einheiten aufgezeichnet', keepBuilding: 'Baue deine Routine weiter aus', goalReached: 'Du bist eine Maschine', logWorkout: 'Training eintragen', recentActivity: 'Letzte Aktivitäten', viewAll: 'Alle anzeigen ›', recentSubtitle: 'Dein vollständiger Trainingsverlauf.', noWorkouts: 'Noch keine {type}-Trainings eingetragen.', sessionDetails: 'Einheitsdetails', setGoals: 'Lege deine wöchentlichen Trainingsziele fest.', theme: 'Erscheinungsbild', dark: 'Dunkel', light: 'Hell', strengthGoal: 'Krafttrainings pro Woche', cardioGoal: 'Cardio-Trainings pro Woche', strengthSession: 'Krafteinheit', exercises: 'Übungen', reps: 'Wiederholungen', kg: 'kg', activity: 'Aktivität', minutes: 'Minuten', sensorPending: 'Sensordaten ausstehend', walking: 'Gehen', jogging: 'Joggen', running: 'Laufen', intention: 'Trainiere mit\nAbsicht.' },
-  fr: { language: 'Français', overview: 'Aperçu', strength: 'Force', cardio: 'Cardio', recent: 'Historique', settings: 'Réglages', back: '‹ Retour', logStrength: 'Enregistrer la force', strengthSubtitle: 'Créez une séance avec un ou plusieurs exercices.', logCardio: 'Enregistrer le cardio', cardioSubtitle: 'Ajoutez une marche, un jogging ou une course.', exercise: 'Exercice', repetitions: 'Répétitions', weight: 'Poids (kg)', selectExercise: 'Choisir un exercice', addExercise: 'Ajouter un exercice', saveSession: 'Enregistrer la séance', saveActivity: 'Enregistrer l’activité', exercisesInSession: 'Exercices de cette séance', recordingWorkout: 'Enregistrement en cours', readyToRecord: 'Prêt à enregistrer', start: 'Démarrer', stop: 'Arrêter', duration: 'Durée (minutes)', phoneWatchData: 'Données du téléphone et de la montre', sensorDetail: 'La vitesse, les pas, la fréquence cardiaque et le parcours apparaîtront ici lorsque les autorisations et la synchronisation seront activées.', speed: 'Vitesse', steps: 'Pas', heartRate: 'Fréquence cardiaque', thisWeek: 'CETTE SEMAINE', sessionsLogged: 'séances enregistrées', keepBuilding: 'Continuez à construire votre routine', logWorkout: 'Enregistrer une séance', recentActivity: 'Activité récente', viewAll: 'Tout voir ›', recentSubtitle: 'Votre historique complet des séances.', noWorkouts: 'Aucune séance de {type} enregistrée.', sessionDetails: 'Détails de la séance', setGoals: 'Définissez vos objectifs hebdomadaires.', theme: 'Thème', dark: 'Sombre', light: 'Clair', strengthGoal: 'Séances de force par semaine', cardioGoal: 'Séances de cardio par semaine', strengthSession: 'Séance de force', exercises: 'exercices', reps: 'répétitions', kg: 'kg', activity: 'Activité', minutes: 'minutes', sensorPending: 'Données des capteurs en attente', walking: 'Marche', jogging: 'Jogging', running: 'Course', intention: 'Entraînez-vous avec\nintention.' },
-  it: { language: 'Italiano', overview: 'Panoramica', strength: 'Forza', cardio: 'Cardio', recent: 'Cronologia', settings: 'Impostazioni', back: '‹ Indietro', logStrength: 'Registra forza', strengthSubtitle: 'Crea una sessione con uno o più esercizi.', logCardio: 'Registra cardio', cardioSubtitle: 'Aggiungi una camminata, una corsa o un jogging.', exercise: 'Esercizio', repetitions: 'Ripetizioni', weight: 'Peso (kg)', selectExercise: 'Seleziona esercizio', addExercise: 'Aggiungi esercizio', saveSession: 'Salva sessione', saveActivity: 'Salva attività', exercisesInSession: 'Esercizi in questa sessione', recordingWorkout: 'Registrazione in corso', readyToRecord: 'Pronto per registrare', start: 'Avvia', stop: 'Ferma', duration: 'Durata (minuti)', phoneWatchData: 'Dati del telefono e dell’orologio', sensorDetail: 'Velocità, passi, frequenza cardiaca e percorso appariranno qui quando saranno collegate autorizzazioni e sincronizzazione.', speed: 'Velocità', steps: 'Passi', heartRate: 'Frequenza cardiaca', thisWeek: 'QUESTA SETTIMANA', sessionsLogged: 'sessioni registrate', keepBuilding: 'Continua a costruire la tua routine', logWorkout: 'Registra allenamento', recentActivity: 'Attività recenti', viewAll: 'Vedi tutto ›', recentSubtitle: 'La cronologia completa dei tuoi allenamenti.', noWorkouts: 'Nessun allenamento di {type} registrato.', sessionDetails: 'Dettagli sessione', setGoals: 'Imposta i tuoi obiettivi settimanali.', theme: 'Tema', dark: 'Scuro', light: 'Chiaro', strengthGoal: 'Allenamenti di forza a settimana', cardioGoal: 'Allenamenti cardio a settimana', strengthSession: 'Sessione di forza', exercises: 'esercizi', reps: 'ripetizioni', kg: 'kg', activity: 'Attività', minutes: 'minuti', sensorPending: 'Dati sensore in attesa', walking: 'Camminata', jogging: 'Jogging', running: 'Corsa', intention: 'Allenati con\nintenzione.' },
-  es: { language: 'Español', overview: 'Resumen', strength: 'Fuerza', cardio: 'Cardio', recent: 'Historial', settings: 'Ajustes', back: '‹ Atrás', logStrength: 'Registrar fuerza', strengthSubtitle: 'Crea una sesión con uno o más ejercicios.', logCardio: 'Registrar cardio', cardioSubtitle: 'Añade una caminata, un trote o una carrera.', exercise: 'Ejercicio', repetitions: 'Repeticiones', weight: 'Peso (kg)', selectExercise: 'Seleccionar ejercicio', addExercise: 'Añadir ejercicio', saveSession: 'Guardar sesión', saveActivity: 'Guardar actividad', exercisesInSession: 'Ejercicios de esta sesión', recordingWorkout: 'Grabando entrenamiento', readyToRecord: 'Listo para grabar', start: 'Iniciar', stop: 'Detener', duration: 'Duración (minutos)', phoneWatchData: 'Datos del teléfono y reloj', sensorDetail: 'La velocidad, los pasos, la frecuencia cardíaca y la ruta aparecerán aquí cuando se conecten los permisos y la sincronización.', speed: 'Velocidad', steps: 'Pasos', heartRate: 'Frecuencia cardíaca', thisWeek: 'ESTA SEMANA', sessionsLogged: 'sesiones registradas', keepBuilding: 'Sigue construyendo tu rutina', logWorkout: 'Registrar entrenamiento', recentActivity: 'Actividad reciente', viewAll: 'Ver todo ›', recentSubtitle: 'Tu historial completo de entrenamientos.', noWorkouts: 'Aún no hay entrenamientos de {type}.', sessionDetails: 'Detalles de la sesión', setGoals: 'Define tus objetivos semanales.', theme: 'Tema', dark: 'Oscuro', light: 'Claro', strengthGoal: 'Entrenamientos de fuerza por semana', cardioGoal: 'Entrenamientos de cardio por semana', strengthSession: 'Sesión de fuerza', exercises: 'ejercicios', reps: 'repeticiones', kg: 'kg', activity: 'Actividad', minutes: 'minutos', sensorPending: 'Datos del sensor pendientes', walking: 'Caminar', jogging: 'Trote', running: 'Correr', intention: 'Entrena con\nintención.' },
+  en: { language: 'English (UK)', overview: 'Overview', strength: 'Strength', cardio: 'Cardio', recent: 'Recent', settings: 'Settings', back: '‹ Back', logStrength: 'Log strength', strengthSubtitle: 'Build a session with one or more exercises.', logCardio: 'Log cardio', cardioSubtitle: 'Add a walk, jog, or run.', exercise: 'Exercise', repetitions: 'Repetitions', weight: 'Weight (kg)', selectExercise: 'Select exercise', addExercise: 'Add exercise', saveSession: 'Save session', saveActivity: 'Save activity', exercisesInSession: 'Exercises in this session', recordingWorkout: 'Recording workout', readyToRecord: 'Ready to record', start: 'Start', stop: 'Stop', duration: 'Duration (minutes)', phoneWatchData: 'Phone & watch data', sensorDetail: 'Speed, steps, heart rate, and route will appear here when device permissions and wearable sync are connected.', speed: 'Speed', steps: 'Steps', heartRate: 'Heart rate', calories: 'Calories', thisWeek: 'THIS WEEK', sessionsLogged: 'sessions logged', keepBuilding: 'Keep building your routine', goalReached: 'You are a machine', logWorkout: 'Log a workout', recentActivity: 'Recent activity', viewAll: 'View all ›', recentSubtitle: 'Your complete workout history.', noWorkouts: 'No {type} workouts logged yet.', sessionDetails: 'Session details', setGoals: 'Set your weekly training goals.', theme: 'Theme', dark: 'Dark', light: 'Light', strengthGoal: 'Strength trainings per week', cardioGoal: 'Cardio trainings per week', strengthSession: 'Strength session', exercises: 'exercises', reps: 'reps', kg: 'kg', activity: 'Activity', minutes: 'minutes', sensorPending: 'Sensor data pending', walking: 'Walking', jogging: 'Jogging', running: 'Running', intention: 'Train with\nintention.', addNewExercise: 'Add "{name}" as a new exercise', chooseCategory: 'Choose a category', confirmAdd: 'Add exercise', translatingExercise: 'Translating…', translateExerciseFailed: 'Could not translate automatically; saved in the original language only.', installHealthConnect: 'Install Health Connect', healthConnectMissing: 'Health Connect is not installed on this device.' },
+  de: { language: 'Deutsch', overview: 'Übersicht', strength: 'Kraft', cardio: 'Cardio', recent: 'Verlauf', settings: 'Einstellungen', back: '‹ Zurück', logStrength: 'Krafttraining eintragen', strengthSubtitle: 'Erstelle eine Einheit mit einer oder mehreren Übungen.', logCardio: 'Cardio eintragen', cardioSubtitle: 'Füge einen Spaziergang, Lauf oder Jogging hinzu.', exercise: 'Übung', repetitions: 'Wiederholungen', weight: 'Gewicht (kg)', selectExercise: 'Übung auswählen', addExercise: 'Übung hinzufügen', saveSession: 'Einheit speichern', saveActivity: 'Aktivität speichern', exercisesInSession: 'Übungen in dieser Einheit', recordingWorkout: 'Training wird aufgezeichnet', readyToRecord: 'Bereit zur Aufzeichnung', start: 'Start', stop: 'Stopp', duration: 'Dauer (Minuten)', phoneWatchData: 'Telefon- und Uhrdaten', sensorDetail: 'Geschwindigkeit, Schritte, Herzfrequenz und Route erscheinen hier, sobald Berechtigungen und die Wearable-Synchronisierung verbunden sind.', speed: 'Geschwindigkeit', steps: 'Schritte', heartRate: 'Herzfrequenz', calories: 'Kalorien', thisWeek: 'DIESE WOCHE', sessionsLogged: 'Einheiten aufgezeichnet', keepBuilding: 'Baue deine Routine weiter aus', goalReached: 'Du bist eine Maschine', logWorkout: 'Training eintragen', recentActivity: 'Letzte Aktivitäten', viewAll: 'Alle anzeigen ›', recentSubtitle: 'Dein vollständiger Trainingsverlauf.', noWorkouts: 'Noch keine {type}-Trainings eingetragen.', sessionDetails: 'Einheitsdetails', setGoals: 'Lege deine wöchentlichen Trainingsziele fest.', theme: 'Erscheinungsbild', dark: 'Dunkel', light: 'Hell', strengthGoal: 'Krafttrainings pro Woche', cardioGoal: 'Cardio-Trainings pro Woche', strengthSession: 'Krafteinheit', exercises: 'Übungen', reps: 'Wiederholungen', kg: 'kg', activity: 'Aktivität', minutes: 'Minuten', sensorPending: 'Sensordaten ausstehend', walking: 'Gehen', jogging: 'Joggen', running: 'Laufen', intention: 'Trainiere mit\nAbsicht.', addNewExercise: '„{name}“ als neue Übung hinzufügen', chooseCategory: 'Kategorie auswählen', confirmAdd: 'Übung hinzufügen', translatingExercise: 'Wird übersetzt…', translateExerciseFailed: 'Automatische Übersetzung fehlgeschlagen; nur in der Originalsprache gespeichert.', installHealthConnect: 'Health Connect installieren', healthConnectMissing: 'Health Connect ist auf diesem Gerät nicht installiert.' },
+  fr: { language: 'Français', overview: 'Aperçu', strength: 'Force', cardio: 'Cardio', recent: 'Historique', settings: 'Réglages', back: '‹ Retour', logStrength: 'Enregistrer la force', strengthSubtitle: 'Créez une séance avec un ou plusieurs exercices.', logCardio: 'Enregistrer le cardio', cardioSubtitle: 'Ajoutez une marche, un jogging ou une course.', exercise: 'Exercice', repetitions: 'Répétitions', weight: 'Poids (kg)', selectExercise: 'Choisir un exercice', addExercise: 'Ajouter un exercice', saveSession: 'Enregistrer la séance', saveActivity: 'Enregistrer l’activité', exercisesInSession: 'Exercices de cette séance', recordingWorkout: 'Enregistrement en cours', readyToRecord: 'Prêt à enregistrer', start: 'Démarrer', stop: 'Arrêter', duration: 'Durée (minutes)', phoneWatchData: 'Données du téléphone et de la montre', sensorDetail: 'La vitesse, les pas, la fréquence cardiaque et le parcours apparaîtront ici lorsque les autorisations et la synchronisation seront activées.', speed: 'Vitesse', steps: 'Pas', heartRate: 'Fréquence cardiaque', calories: 'Calories', thisWeek: 'CETTE SEMAINE', sessionsLogged: 'séances enregistrées', keepBuilding: 'Continuez à construire votre routine', logWorkout: 'Enregistrer une séance', recentActivity: 'Activité récente', viewAll: 'Tout voir ›', recentSubtitle: 'Votre historique complet des séances.', noWorkouts: 'Aucune séance de {type} enregistrée.', sessionDetails: 'Détails de la séance', setGoals: 'Définissez vos objectifs hebdomadaires.', theme: 'Thème', dark: 'Sombre', light: 'Clair', strengthGoal: 'Séances de force par semaine', cardioGoal: 'Séances de cardio par semaine', strengthSession: 'Séance de force', exercises: 'exercices', reps: 'répétitions', kg: 'kg', activity: 'Activité', minutes: 'minutes', sensorPending: 'Données des capteurs en attente', walking: 'Marche', jogging: 'Jogging', running: 'Course', intention: 'Entraînez-vous avec\nintention.', addNewExercise: 'Ajouter « {name} » comme nouvel exercice', chooseCategory: 'Choisir une catégorie', confirmAdd: 'Ajouter l’exercice', translatingExercise: 'Traduction en cours…', translateExerciseFailed: 'Traduction automatique impossible ; enregistré uniquement dans la langue d’origine.', installHealthConnect: 'Installer Health Connect', healthConnectMissing: 'Health Connect n’est pas installé sur cet appareil.' },
+  it: { language: 'Italiano', overview: 'Panoramica', strength: 'Forza', cardio: 'Cardio', recent: 'Cronologia', settings: 'Impostazioni', back: '‹ Indietro', logStrength: 'Registra forza', strengthSubtitle: 'Crea una sessione con uno o più esercizi.', logCardio: 'Registra cardio', cardioSubtitle: 'Aggiungi una camminata, una corsa o un jogging.', exercise: 'Esercizio', repetitions: 'Ripetizioni', weight: 'Peso (kg)', selectExercise: 'Seleziona esercizio', addExercise: 'Aggiungi esercizio', saveSession: 'Salva sessione', saveActivity: 'Salva attività', exercisesInSession: 'Esercizi in questa sessione', recordingWorkout: 'Registrazione in corso', readyToRecord: 'Pronto per registrare', start: 'Avvia', stop: 'Ferma', duration: 'Durata (minuti)', phoneWatchData: 'Dati del telefono e dell’orologio', sensorDetail: 'Velocità, passi, frequenza cardiaca e percorso appariranno qui quando saranno collegate autorizzazioni e sincronizzazione.', speed: 'Velocità', steps: 'Passi', heartRate: 'Frequenza cardiaca', calories: 'Calorie', thisWeek: 'QUESTA SETTIMANA', sessionsLogged: 'sessioni registrate', keepBuilding: 'Continua a costruire la tua routine', logWorkout: 'Registra allenamento', recentActivity: 'Attività recenti', viewAll: 'Vedi tutto ›', recentSubtitle: 'La cronologia completa dei tuoi allenamenti.', noWorkouts: 'Nessun allenamento di {type} registrato.', sessionDetails: 'Dettagli sessione', setGoals: 'Imposta i tuoi obiettivi settimanali.', theme: 'Tema', dark: 'Scuro', light: 'Chiaro', strengthGoal: 'Allenamenti di forza a settimana', cardioGoal: 'Allenamenti cardio a settimana', strengthSession: 'Sessione di forza', exercises: 'esercizi', reps: 'ripetizioni', kg: 'kg', activity: 'Attività', minutes: 'minuti', sensorPending: 'Dati sensore in attesa', walking: 'Camminata', jogging: 'Jogging', running: 'Corsa', intention: 'Allenati con\nintenzione.', addNewExercise: 'Aggiungi "{name}" come nuovo esercizio', chooseCategory: 'Scegli una categoria', confirmAdd: 'Aggiungi esercizio', translatingExercise: 'Traduzione in corso…', translateExerciseFailed: 'Traduzione automatica non riuscita; salvato solo nella lingua originale.', installHealthConnect: 'Installa Health Connect', healthConnectMissing: 'Health Connect non è installato su questo dispositivo.' },
+  es: { language: 'Español', overview: 'Resumen', strength: 'Fuerza', cardio: 'Cardio', recent: 'Historial', settings: 'Ajustes', back: '‹ Atrás', logStrength: 'Registrar fuerza', strengthSubtitle: 'Crea una sesión con uno o más ejercicios.', logCardio: 'Registrar cardio', cardioSubtitle: 'Añade una caminata, un trote o una carrera.', exercise: 'Ejercicio', repetitions: 'Repeticiones', weight: 'Peso (kg)', selectExercise: 'Seleccionar ejercicio', addExercise: 'Añadir ejercicio', saveSession: 'Guardar sesión', saveActivity: 'Guardar actividad', exercisesInSession: 'Ejercicios de esta sesión', recordingWorkout: 'Grabando entrenamiento', readyToRecord: 'Listo para grabar', start: 'Iniciar', stop: 'Detener', duration: 'Duración (minutos)', phoneWatchData: 'Datos del teléfono y reloj', sensorDetail: 'La velocidad, los pasos, la frecuencia cardíaca y la ruta aparecerán aquí cuando se conecten los permisos y la sincronización.', speed: 'Velocidad', steps: 'Pasos', heartRate: 'Frecuencia cardíaca', calories: 'Calorías', thisWeek: 'ESTA SEMANA', sessionsLogged: 'sesiones registradas', keepBuilding: 'Sigue construyendo tu rutina', logWorkout: 'Registrar entrenamiento', recentActivity: 'Actividad reciente', viewAll: 'Ver todo ›', recentSubtitle: 'Tu historial completo de entrenamientos.', noWorkouts: 'Aún no hay entrenamientos de {type}.', sessionDetails: 'Detalles de la sesión', setGoals: 'Define tus objetivos semanales.', theme: 'Tema', dark: 'Oscuro', light: 'Claro', strengthGoal: 'Entrenamientos de fuerza por semana', cardioGoal: 'Entrenamientos de cardio por semana', strengthSession: 'Sesión de fuerza', exercises: 'ejercicios', reps: 'repeticiones', kg: 'kg', activity: 'Actividad', minutes: 'minutos', sensorPending: 'Datos del sensor pendientes', walking: 'Caminar', jogging: 'Trote', running: 'Correr', intention: 'Entrena con\nintención.', addNewExercise: 'Añadir "{name}" como nuevo ejercicio', chooseCategory: 'Elige una categoría', confirmAdd: 'Añadir ejercicio', translatingExercise: 'Traduciendo…', translateExerciseFailed: 'No se pudo traducir automáticamente; guardado solo en el idioma original.', installHealthConnect: 'Instalar Health Connect', healthConnectMissing: 'Health Connect no está instalado en este dispositivo.' },
 };
 
 const initialEntries: Entry[] = [];
@@ -44,6 +46,9 @@ export default function App() {
   const [language, setLanguage] = useState<Language>('en');
   const [isHydrated, setIsHydrated] = useState(false);
   const [exerciseSelectorBackScreen, setExerciseSelectorBackScreen] = useState<'home' | 'strength' | 'settings'>('settings');
+  const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
+  const [liveHealthMetrics, setLiveHealthMetrics] = useState<LiveHealthMetrics>({});
+  const [healthConnectStatus, setHealthConnectStatus] = useState<'idle' | 'unavailable' | 'ready'>('idle');
   const copy = translations[language];
   const recordingStartedAt = useRef<number | null>(null);
 
@@ -55,6 +60,7 @@ export default function App() {
         const saved = JSON.parse(storedState);
         setEntries(saved.entries || initialEntries);
         setStrengthPresets(saved.strengthPresets || []);
+        setCustomExercises(saved.customExercises || []);
         setActivity(saved.activity || 'Jogging');
         setDurationHours(saved.durationHours || '');
         setDurationMinutes(saved.durationMinutes || '');
@@ -69,11 +75,12 @@ export default function App() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ entries, strengthPresets, activity, durationHours, durationMinutes, durationSeconds, strengthGoal, cardioGoal, isDark, language })).catch(() => undefined);
-  }, [isHydrated, entries, strengthPresets, activity, durationHours, durationMinutes, durationSeconds, strengthGoal, cardioGoal, isDark, language]);
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ entries, strengthPresets, customExercises, activity, durationHours, durationMinutes, durationSeconds, strengthGoal, cardioGoal, isDark, language })).catch(() => undefined);
+  }, [isHydrated, entries, strengthPresets, customExercises, activity, durationHours, durationMinutes, durationSeconds, strengthGoal, cardioGoal, isDark, language]);
 
   const changeLanguage = (nextLanguage: Language) => {
-    setStrengthPresets((presets) => presets.map((preset) => translateExerciseName(preset, language, nextLanguage)));
+    const mergedGroups = mergeExerciseGroups(customExercises);
+    setStrengthPresets((presets) => presets.map((preset) => translateExerciseName(preset, language, nextLanguage, mergedGroups)));
     setLanguage(nextLanguage);
   };
 
@@ -98,11 +105,15 @@ export default function App() {
     const totalSeconds = recordingSeconds > 0 ? recordingSeconds : selectedSeconds;
     if (totalSeconds <= 0) return;
     const savedDuration = formatDuration(totalSeconds);
-    setEntries([{ id: createEntryId(), title: activity, titleKey: 'activity', detail: `${savedDuration} · ${copy.sensorPending}`, accent: '#9BE15D', type: 'cardio', items: [`${copy.activity}: ${activity}`, `${copy.duration}: ${savedDuration}`, copy.sensorPending], date: new Date().toISOString() }, ...entries]);
+    const healthItems = formatHealthMetricsSummary(liveHealthMetrics, copy);
+    const sensorSummary = healthItems.length > 0 ? healthItems.join(' · ') : copy.sensorPending;
+    setEntries([{ id: createEntryId(), title: activity, titleKey: 'activity', detail: `${savedDuration} · ${sensorSummary}`, accent: '#9BE15D', type: 'cardio', items: [`${copy.activity}: ${activity}`, `${copy.duration}: ${savedDuration}`, ...(healthItems.length > 0 ? healthItems : [copy.sensorPending])], date: new Date().toISOString() }, ...entries]);
     setDurationHours('');
     setDurationMinutes('');
     setDurationSeconds('');
     setRecordingSeconds(0);
+    setLiveHealthMetrics({});
+    setHealthConnectStatus('idle');
     setScreen('home');
   };
 
@@ -110,7 +121,7 @@ export default function App() {
     const confirmation = getDeleteDataCopy(language);
     Alert.alert(confirmation.title, confirmation.message, [
       { text: confirmation.cancel, style: 'cancel' },
-      { text: confirmation.confirm, style: 'destructive', onPress: () => { setEntries([]); setStrengthPresets([]); setStrengthExercises([]); setExercise(''); setRepetitions(''); setWeight(''); setDurationHours(''); setDurationMinutes(''); setDurationSeconds(''); setRecordingSeconds(0); setStrengthGoal('3'); setCardioGoal('3'); } },
+      { text: confirmation.confirm, style: 'destructive', onPress: () => { setEntries([]); setStrengthPresets([]); setCustomExercises([]); setStrengthExercises([]); setExercise(''); setRepetitions(''); setWeight(''); setDurationHours(''); setDurationMinutes(''); setDurationSeconds(''); setRecordingSeconds(0); setLiveHealthMetrics({}); setHealthConnectStatus('idle'); setStrengthGoal('3'); setCardioGoal('3'); } },
     ]);
   };
 
@@ -123,6 +134,17 @@ export default function App() {
     }, 1000);
     return () => clearInterval(timer);
   }, [isRecording]);
+
+  useEffect(() => {
+    if (!isRecording || healthConnectStatus !== 'ready') return;
+    const poll = () => {
+      if (!recordingStartedAt.current) return;
+      pollLiveMetrics(new Date(recordingStartedAt.current)).then(setLiveHealthMetrics);
+    };
+    poll();
+    const interval = setInterval(poll, 8000);
+    return () => clearInterval(interval);
+  }, [isRecording, healthConnectStatus]);
 
   useEffect(() => {
     const handleBackGesture = () => {
@@ -138,7 +160,16 @@ export default function App() {
   const startRecording = () => {
     recordingStartedAt.current = Date.now();
     setRecordingSeconds(0);
+    setLiveHealthMetrics({});
     setIsRecording(true);
+    if (Platform.OS !== 'android') {
+      setHealthConnectStatus('unavailable');
+      return;
+    }
+    isHealthConnectAvailable().then((available) => {
+      if (!available) { setHealthConnectStatus('unavailable'); return; }
+      requestHealthPermissions().then((granted) => setHealthConnectStatus(granted ? 'ready' : 'unavailable'));
+    });
   };
 
   const stopRecording = () => {
@@ -165,7 +196,7 @@ export default function App() {
         {screen === 'home' && <Home entries={entries} copy={copy} strengthGoal={strengthGoal} cardioGoal={cardioGoal} onAdd={() => setScreen('strength')} onCardio={() => setScreen('cardio')} onRecent={() => setScreen('recent')} onOpenSession={(entry) => openSession(entry, 'home')} />}
         {screen === 'recent' && <RecentActivities entries={entries} copy={copy} onBack={() => setScreen('home')} onOpenSession={(entry) => openSession(entry, 'recent')} />}
         {screen === 'settings' && <Settings strengthGoal={strengthGoal} cardioGoal={cardioGoal} language={language} copy={copy} isDark={isDark} onLanguageChange={changeLanguage} onThemeChange={setIsDark} onStrengthGoalChange={setStrengthGoal} onCardioGoalChange={setCardioGoal} onOpenExercises={() => { setExerciseSelectorBackScreen('settings'); setScreen('exercises'); }} onDeleteAllData={deleteAllData} onBack={() => setScreen('home')} />}
-        {screen === 'exercises' && <ExerciseSelector presets={strengthPresets} language={language} onSelect={(preset) => setStrengthPresets((presets) => presets.includes(preset) ? presets.filter((item) => item !== preset) : [...presets, preset])} copy={copy} onBack={() => setScreen(exerciseSelectorBackScreen)} />}
+        {screen === 'exercises' && <ExerciseSelector presets={strengthPresets} language={language} customExercises={customExercises} onAddCustomExercise={(custom) => setCustomExercises((items) => [...items, custom])} onSelect={(preset) => setStrengthPresets((presets) => presets.includes(preset) ? presets.filter((item) => item !== preset) : [...presets, preset])} copy={copy} onBack={() => setScreen(exerciseSelectorBackScreen)} />}
         {screen === 'details' && selectedEntry && <SessionDetails entry={selectedEntry} copy={copy} onBack={() => setScreen(detailsBackScreen)} />}
         {screen === 'strength' && (
           <EntryForm title={copy.logStrength} subtitle={copy.strengthSubtitle} onBack={() => setScreen('home')} onSave={saveStrengthSession} saveLabel={copy.saveSession} copy={copy}>
@@ -202,10 +233,16 @@ export default function App() {
               <Text style={styles.sensorTitle}>{copy.phoneWatchData}</Text>
               <Text style={styles.sensorDetail}>{copy.sensorDetail}</Text>
               <View style={styles.sensorGrid}>
-                <Metric label={copy.speed} value="-- km/h" />
-                <Metric label={copy.steps} value="--" />
-                <Metric label={copy.heartRate} value="-- bpm" />
+                <Metric label={copy.speed} value={liveHealthMetrics.speedKmh != null ? `${liveHealthMetrics.speedKmh} km/h` : '-- km/h'} />
+                <Metric label={copy.steps} value={liveHealthMetrics.steps != null ? String(liveHealthMetrics.steps) : '--'} />
+                <Metric label={copy.heartRate} value={liveHealthMetrics.heartRate != null ? `${liveHealthMetrics.heartRate} bpm` : '-- bpm'} />
+                <Metric label={copy.calories} value={liveHealthMetrics.calories != null ? String(liveHealthMetrics.calories) : '--'} />
               </View>
+              {healthConnectStatus === 'unavailable' && Platform.OS === 'android' && (
+                <Pressable style={styles.secondaryButton} onPress={() => Linking.openURL('market://details?id=com.google.android.apps.healthdata')}>
+                  <Text style={styles.secondaryButtonText}>{copy.installHealthConnect}</Text>
+                </Pressable>
+              )}
             </View>
           </EntryForm>
         )}
@@ -415,13 +452,31 @@ function ExerciseDropdown({ value, onChange, copy, options, onEmptySelect }: { v
   );
 }
 
-function ExerciseSelector({ presets, language, onSelect, copy, onBack }: { presets: string[]; language: Language; onSelect: (preset: string) => void; copy: Copy; onBack: () => void }) {
+function ExerciseSelector({ presets, language, customExercises, onAddCustomExercise, onSelect, copy, onBack }: { presets: string[]; language: Language; customExercises: CustomExercise[]; onAddCustomExercise: (custom: CustomExercise) => void; onSelect: (preset: string) => void; copy: Copy; onBack: () => void }) {
   const [search, setSearch] = useState('');
-  const filteredGroups = exerciseGroups.map((group) => ({ ...group, exercises: group.exercises[language].filter((item) => item.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.exercises.length > 0);
+  const [categoryKey, setCategoryKey] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translateFailed, setTranslateFailed] = useState(false);
+  const mergedGroups = mergeExerciseGroups(customExercises);
+  const filteredGroups = mergedGroups.map((group) => ({ ...group, exercises: group.exercises[language].filter((item) => item.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.exercises.length > 0);
   const selectedExercises = filteredGroups.flatMap((group) => group.exercises).filter((item) => presets.includes(item));
   const unselectedGroups = filteredGroups.map((group) => ({ ...group, exercises: group.exercises.filter((item) => !presets.includes(item)) })).filter((group) => group.exercises.length > 0);
+  const trimmedSearch = search.trim();
+  const hasNoMatches = trimmedSearch.length > 0 && filteredGroups.length === 0;
 
-  return <><Pressable style={styles.backButton} onPress={onBack} hitSlop={8}><Text style={styles.back}>{copy.back}</Text></Pressable><Text style={styles.formTitle}>{copy.addExercise}</Text><Text style={styles.formSubtitle}>{copy.strengthSubtitle}</Text><View style={styles.exerciseList}><TextInput style={styles.presetSearch} value={search} onChangeText={setSearch} placeholder={copy.selectExercise} placeholderTextColor="#82909A" autoFocus />{selectedExercises.map((item) => <Pressable key={item} style={[styles.dropdownOption, styles.dropdownOptionSelected]} onPress={() => onSelect(item)}><Text style={[styles.dropdownOptionText, styles.dropdownOptionSelectedText]}>{item}</Text><Text style={styles.dropdownCheck}>✓</Text></Pressable>)}{unselectedGroups.map((group) => <View key={group.categories[language]}><Text style={styles.presetCategory}>{group.categories[language]}</Text>{group.exercises.map((item) => <Pressable key={item} style={styles.dropdownOption} onPress={() => onSelect(item)}><Text style={styles.dropdownOptionText}>{item}</Text></Pressable>)}</View>)}</View></>;
+  const confirmAddExercise = async () => {
+    if (!trimmedSearch || !categoryKey) return;
+    setIsTranslating(true);
+    const { translations, hadFailure } = await translateToAllLanguages(trimmedSearch, language);
+    setIsTranslating(false);
+    setTranslateFailed(hadFailure);
+    onAddCustomExercise({ categoryKey, translations });
+    onSelect(translations[language]);
+    setSearch('');
+    setCategoryKey(null);
+  };
+
+  return <><Pressable style={styles.backButton} onPress={onBack} hitSlop={8}><Text style={styles.back}>{copy.back}</Text></Pressable><Text style={styles.formTitle}>{copy.addExercise}</Text><Text style={styles.formSubtitle}>{copy.strengthSubtitle}</Text><View style={styles.exerciseList}><TextInput style={styles.presetSearch} value={search} onChangeText={(value) => { setSearch(value); setCategoryKey(null); setTranslateFailed(false); }} placeholder={copy.selectExercise} placeholderTextColor="#82909A" autoFocus />{selectedExercises.map((item) => <Pressable key={item} style={[styles.dropdownOption, styles.dropdownOptionSelected]} onPress={() => onSelect(item)}><Text style={[styles.dropdownOptionText, styles.dropdownOptionSelectedText]}>{item}</Text><Text style={styles.dropdownCheck}>✓</Text></Pressable>)}{unselectedGroups.map((group) => <View key={group.categories[language]}><Text style={styles.presetCategory}>{group.categories[language]}</Text>{group.exercises.map((item) => <Pressable key={item} style={styles.dropdownOption} onPress={() => onSelect(item)}><Text style={styles.dropdownOptionText}>{item}</Text></Pressable>)}</View>)}{hasNoMatches && <View style={styles.pendingExercises}><Text style={styles.pendingTitle}>{copy.addNewExercise.replace('{name}', trimmedSearch)}</Text><Text style={styles.fieldLabel}>{copy.chooseCategory}</Text>{exerciseGroups.map((group) => <Pressable key={group.categories.en} style={[styles.dropdownOption, categoryKey === group.categories.en && styles.dropdownOptionSelected]} onPress={() => setCategoryKey(group.categories.en)}><Text style={[styles.dropdownOptionText, categoryKey === group.categories.en && styles.dropdownOptionSelectedText]}>{group.categories[language]}</Text></Pressable>)}<Pressable style={[styles.secondaryButton, (!categoryKey || isTranslating) && styles.stopButtonDisabled]} onPress={confirmAddExercise} disabled={!categoryKey || isTranslating}><Text style={styles.secondaryButtonText}>{isTranslating ? copy.translatingExercise : copy.confirmAdd}</Text></Pressable>{translateFailed && <Text style={styles.sensorDetail}>{copy.translateExerciseFailed}</Text>}</View>}</View></>;
 }
 
 function formatRecordingTime(seconds: number) {
@@ -436,6 +491,15 @@ function formatDuration(totalSeconds: number) {
   const minutes = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
   const remainingSeconds = (seconds % 60).toString().padStart(2, '0');
   return hours > 0 ? `${hours.toString().padStart(2, '0')}:${minutes}:${remainingSeconds}` : `${minutes}:${remainingSeconds}`;
+}
+
+function formatHealthMetricsSummary(metrics: LiveHealthMetrics, copy: Copy) {
+  const items: string[] = [];
+  if (metrics.heartRate != null) items.push(`${copy.heartRate}: ${metrics.heartRate} bpm`);
+  if (metrics.steps != null) items.push(`${copy.steps}: ${metrics.steps}`);
+  if (metrics.speedKmh != null) items.push(`${copy.speed}: ${metrics.speedKmh} km/h`);
+  if (metrics.calories != null) items.push(`${copy.calories}: ${metrics.calories} kcal`);
+  return items;
 }
 
 function getGoalPercentage(completed: number, goal: string) {
@@ -509,8 +573,8 @@ function formatEntryDate(value: string, language: Language) {
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-function translateExerciseName(name: string, fromLanguage: Language, toLanguage: Language) {
-  for (const group of exerciseGroups) {
+function translateExerciseName(name: string, fromLanguage: Language, toLanguage: Language, groups: ExerciseGroup[] = exerciseGroups) {
+  for (const group of groups) {
     const sourceIndex = group.exercises[fromLanguage].indexOf(name);
     if (sourceIndex !== -1) return group.exercises[toLanguage][sourceIndex];
   }

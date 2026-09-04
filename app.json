@@ -23,7 +23,27 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/dumbbell-icon.png",
         "backgroundColor": "#0B1014"
-      }
-    }
+      },
+      "permissions": [
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_DISTANCE",
+        "android.permission.health.READ_TOTAL_CALORIES_BURNED"
+      ]
+    },
+    "plugins": [
+      "expo-dev-client",
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "minSdkVersion": 26
+          }
+        }
+      ]
+    ]
   }
 }
