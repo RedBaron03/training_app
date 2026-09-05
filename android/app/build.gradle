@@ -4,6 +4,15 @@ apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
+// Single source of truth for the app version is app.json (expo.version).
+// versionName mirrors it; versionCode is derived as major*10000 + minor*100 + patch.
+def appJsonVersion = {
+    def appJson = new groovy.json.JsonSlurper().parse(new File(projectRoot, 'app.json'))
+    return appJson.expo.version as String
+}()
+def versionParts = appJsonVersion.split(/\./).collect { it.replaceAll(/[^0-9].*$/, '') as int }
+def computedVersionCode = (versionParts[0] * 10000) + ((versionParts.size() > 1 ? versionParts[1] : 0) * 100) + (versionParts.size() > 2 ? versionParts[2] : 0)
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -92,8 +101,8 @@ android {
         applicationId 'com.blueballsmedia.trainingapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        versionCode computedVersionCode
+        versionName appJsonVersion
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
