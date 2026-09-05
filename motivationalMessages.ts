@@ -1,4 +1,6 @@
-export type Language = 'en' | 'de' | 'fr' | 'it' | 'es';
+import type { Language } from './types';
+
+export type { Language };
 
 export const motivationalMessages: Record<Language, string[]> = {
   en: [
